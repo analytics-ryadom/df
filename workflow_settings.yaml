@@ -1,0 +1,5 @@
+defaultProject: organic-reef-315010
+defaultLocation: EU
+defaultDataset: dataform
+defaultAssertionDataset: dataform_assertions
+dataformCoreVersion: 3.0.0
