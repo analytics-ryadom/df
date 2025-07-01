@@ -12,5 +12,5 @@ config {
 }
 
 -- The rest of a SQLX file contains your SELECT statement used to create the table.
--- gg_3
+-- gg
 SELECT 1 as test
