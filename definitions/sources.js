@@ -10,22 +10,28 @@ declare({
     name: "order_status_history",
   });
 
-  declare({
+declare({
     database: "organic-reef-315010",
     schema: "snp",
     name: "shift_reasons",
   });
 
-    declare({
+declare({
     database: "organic-reef-315010",
     schema: "snp",
     name: "employee_shift_status_history",
   });
 
-      declare({
+declare({
     database: "organic-reef-315010",
     schema: "snp",
     name: "shifts",
+  });
+
+declare({
+    database: "organic-reef-315010",
+    schema: "indrive",
+    name: "financial_metrics-transactions",
   });
 
   

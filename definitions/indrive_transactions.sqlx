@@ -1,0 +1,58 @@
+config {
+  type: "incremental",
+  schema: 'snp',
+  name: 'indrive_transactions',
+  bigquery: {
+    partitionBy: "timestamp_trunc(created_at, day)",
+    updatePartitionFilter:
+        "created_at >= timestamp_sub(current_timestamp(), interval 6 day)",
+    clusterBy: ["uuid"]
+  },
+  assertions: {
+    nonNull: ["uuid", "created_at"],
+    rowConditions: [
+      'PARSE_NUMERIC(amount) > 0'
+    ]
+  },
+
+}
+
+pre_operations {
+    DECLARE timestamp_checkpoint DEFAULT (
+    ${when(incremental(),
+    `SELECT timestamp(timestamp_sub(current_timestamp(), interval 3 day))`,
+    `SELECT timestamp("2025-05-01")`)}
+  )
+  }
+
+
+select
+-- Top-level fields
+  JSON_VALUE(raw_data, '$.amount') AS amount,
+  JSON_VALUE(raw_data, '$.antifraud_decision') AS antifraud_decision,
+  JSON_VALUE(raw_data, '$.balance_operation_uuid') AS balance_operation_uuid,
+  JSON_VALUE(raw_data, '$.city_name') AS city_name,
+  timestamp(JSON_VALUE(raw_data, '$.created_at')) AS created_at,
+  JSON_VALUE(raw_data, '$.currency_code') AS currency_code,
+  JSON_VALUE(raw_data, '$.is_auto_topup') AS is_auto_topup,
+  JSON_VALUE(raw_data, '$.merchant_id') AS merchant_id,
+  JSON_VALUE(raw_data, '$.method_name') AS method_name,
+  JSON_VALUE(raw_data, '$.modified_at') AS modified_at,
+  JSON_VALUE(raw_data, '$.provider_identity') AS provider_identity,
+  JSON_VALUE(raw_data, '$.provider_method_code') AS provider_method_code,
+  JSON_VALUE(raw_data, '$.provider_name') AS provider_name,
+  JSON_VALUE(raw_data, '$.reject_reason') AS reject_reason,
+  JSON_VALUE(raw_data, '$.status') AS status,
+  JSON_VALUE(raw_data, '$.sub_provider_identity') AS sub_provider_identity,
+  JSON_VALUE(raw_data, '$.uuid') AS uuid,
+  JSON_VALUE(raw_data, '$.vendor_name') AS vendor_name,
+ JSON_VALUE(JSON_VALUE(raw_data, '$.jdoc')) as jdoc,
+-- Nested JSON field in 'jdoc'
+JSON_VALUE(JSON_VALUE(raw_data, '$.jdoc'), '$.with_saved_instrument') AS with_saved_instrument,
+JSON_VALUE(JSON_VALUE(raw_data, '$.jdoc'), '$.pay_date') AS pay_date
+from ${ref("financial_metrics-transactions")} 
+where created_at > timestamp_checkpoint
+
+
+
+
