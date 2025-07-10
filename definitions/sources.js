@@ -34,4 +34,16 @@ declare({
     name: "financial_metrics-transactions",
   });
 
+declare({
+    database: "organic-reef-315010",
+    schema: "amplitude_ryadom_user_app",
+    name: "EVENTS_296820",
+  });
+
+declare({
+    database: "organic-reef-315010",
+    schema: "amplitude_ryadom_superapp",
+    name: "EVENTS_415371",
+  });
+
   

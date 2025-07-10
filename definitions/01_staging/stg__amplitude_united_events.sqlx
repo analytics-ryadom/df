@@ -1,0 +1,408 @@
+config {
+  type: 'incremental',
+  description: 'Staging table combining miniapp and superapp events from Amplitude',
+  schema: 'staging',
+  tags: ['amplitude', 'staging'],
+  name: 'stg_amplitude__united_events',
+  bigquery: {
+    partitionBy: 'timestamp_trunc(event_time, day)',
+    updatePartitionFilter:
+        'event_time >= timestamp_sub(current_timestamp(), interval 2 day)',
+    clusterBy: ['filled_sa_amplitude_id', 'event_source']
+  },
+  assertions: {
+    nonNull: ['uuid', 'event_time', 'event_source'],
+    uniqueKey: ['uuid', 'event_time']
+  },
+}
+
+pre_operations {
+  declare timestamp_checkpoint timestamp; 
+  set timestamp_checkpoint = (
+    ${when(incremental(),
+    `ifnull(
+      (
+        select timestamp_add(max(event_time), interval 1 day) from ${self()} limit 1
+      ), 
+      timestamp("2025-07-09")
+    )`,
+    `timestamp("2025-07-09")`)
+    }
+  );
+
+--delete data from incremental update window
+    ${
+    when(incremental(),
+        `delete from ${self()} where event_time >= timestamp_checkpoint`
+        )
+    }
+}
+
+-- declare timestamp_checkpoint timestamp; 
+-- set timestamp_checkpoint = "2025-07-09";
+
+with
+  base_miniapp_data as (
+    select 
+      *
+    from(
+        select
+          'ryadom' as event_source,
+          amplitude_id as ma_amplitude_id,
+          safe_cast(null as bignumeric) as sa_amplitude_id,
+          safe_cast(null as json) as sa_user_properties,
+          safe_cast(null as json) as sa_event_properties,
+          user_properties as ma_user_properties,
+          event_properties as ma_event_properties,
+          event_time,
+          case
+            when lower(event_type) like 'session_start' then 'ma_session_start'
+            when lower(event_type) like 'session_end' then 'ma_session_end'
+            when lower(event_type) like 'init' then 'ma_custom_session_start'
+            when lower(event_type) like 'reconnect_to_app' then 'ma_custom_session_start'
+            else event_type
+          end as event_type,
+          safe_cast(json_extract_scalar(event_properties, '$.amplitude_session_id') as int64) as sa_session_id,
+          session_id as ma_session_id,
+          adid,
+          amplitude_attribution_ids,
+          amplitude_event_type,
+          app,
+          city,
+          client_event_time,
+          client_upload_time,
+          country,
+          `data`,
+          device_brand,
+          device_carrier,
+          device_family,
+          device_id,
+          device_manufacturer,
+          device_model,
+          device_type,
+          dma,
+          event_id,
+          event_properties,
+          followed_an_identify,
+          group_properties,
+          `groups`,
+          idfa,
+          ip_address,
+          is_attribution_event,
+          language,
+          library,
+          location_lat,
+          location_lng,
+          os_name,
+          os_version,
+          paying,
+          platform,
+          processed_time,
+          region,
+          sample_rate,
+          server_received_time,
+          server_upload_time,
+          session_id,
+          start_version,
+          user_creation_time,
+          user_id,
+          user_properties,
+          uuid,
+          version_name,
+          row_number() over(partition by uuid) as rn
+        from
+          ${ref('EVENTS_296820')}
+        where
+          event_time > timestamp_checkpoint
+        and
+          lower(event_type) not like '%[amplitude]%'
+        and
+          lower(json_extract_scalar(event_properties, '$.currentApp')) like "miniapp"
+        )
+    where
+      rn = 1
+
+  ),
+
+miniapp_events as (
+  select
+    bd.* except(sa_session_id),
+    case
+      when event_type like 'ma_session_start' then lead(sa_session_id) over(partition by ma_amplitude_id order by event_time)
+      when event_type like 'ma_session_end' then lag(sa_session_id) over(partition by ma_amplitude_id order by event_time)
+      else sa_session_id
+    end as sa_session_id
+  from 
+    base_miniapp_data bd
+  ),
+
+  superapp_events as (
+    select
+      *
+    from(
+      select
+        'superapp' as event_source,
+        safe_cast(null as bignumeric) as ma_amplitude_id,
+        amplitude_id as sa_amplitude_id,
+        user_properties as sa_user_properties,
+        event_properties as sa_event_properties,
+        safe_cast(null as json) as ma_user_properties,
+        safe_cast(null as json) as ma_event_properties,
+        event_time,
+        case
+          when lower(event_type) like 'session_start' then 'sa_session_start'
+          when lower(event_type) like 'session_end' then 'sa_session_end'
+          else event_type
+        end as event_type,
+        session_id as sa_session_id,
+        safe_cast(null as bignumeric) as ma_session_id,
+        app,
+        city,
+        client_event_time,
+        client_upload_time,
+        country,
+        `data`,
+        device_brand,
+        device_carrier,
+        device_family,
+        device_id,
+        device_manufacturer,
+        device_model,
+        device_type,
+        dma,
+        event_id,
+        followed_an_identify,
+        group_properties,
+        `groups`,
+        idfa,
+        ip_address,
+        is_attribution_event,
+        language,
+        library,
+        location_lat,
+        location_lng,
+        os_name,
+        os_version,
+        paying,
+        platform,
+        processed_time,
+        region,
+        sample_rate,
+        server_received_time,
+        server_upload_time,
+        session_id,
+        start_version,
+        user_creation_time,
+        user_id,
+        uuid,
+        version_name,
+        row_number() over(partition by uuid) as rn
+      from
+        ${ref('EVENTS_415371')}
+      where
+        event_time > timestamp_checkpoint
+      -- and
+      --   event_type in (
+      --     'webapp_open'
+      --   , 'main_page_view'
+      --   , 'session_start'
+      --   , 'payment_screen_loaded'
+      --   , 'payment_confirm'
+      --   )
+      )
+    where rn = 1
+  ),
+
+  united_data as (
+    select
+      event_source,
+      ma_amplitude_id,
+      sa_amplitude_id,
+      event_time,
+      event_type,
+      sa_user_properties,
+      sa_event_properties,
+      ma_user_properties,
+      ma_event_properties,
+      sa_session_id,
+      ma_session_id,
+      app,
+      city,
+      client_event_time,
+      client_upload_time,
+      country,
+      `data`,
+      device_brand,
+      device_carrier,
+      device_family,
+      device_id,
+      device_manufacturer,
+      device_model,
+      device_type,
+      dma,
+      event_id,
+      followed_an_identify,
+      group_properties,
+      `groups`,
+      idfa,
+      ip_address,
+      is_attribution_event,
+      language,
+      library,
+      location_lat,
+      location_lng,
+      os_name,
+      os_version,
+      paying,
+      platform,
+      processed_time,
+      region,
+      sample_rate,
+      server_received_time,
+      server_upload_time,
+      session_id,
+      start_version,
+      user_creation_time,
+      user_id,
+      uuid,
+      version_name
+    from
+      miniapp_events
+
+    union all
+
+    select
+      event_source,
+      ma_amplitude_id,
+      sa_amplitude_id,
+      event_time,
+      event_type,
+      sa_user_properties,
+      sa_event_properties,
+      ma_user_properties,
+      ma_event_properties,
+      sa_session_id,
+      ma_session_id,
+      app,
+      city,
+      client_event_time,
+      client_upload_time,
+      country,
+      `data`,
+      device_brand,
+      device_carrier,
+      device_family,
+      device_id,
+      device_manufacturer,
+      device_model,
+      device_type,
+      dma,
+      event_id,
+      followed_an_identify,
+      group_properties,
+      `groups`,
+      idfa,
+      ip_address,
+      is_attribution_event,
+      language,
+      library,
+      location_lat,
+      location_lng,
+      os_name,
+      os_version,
+      paying,
+      platform,
+      processed_time,
+      region,
+      sample_rate,
+      server_received_time,
+      server_upload_time,
+      session_id,
+      start_version,
+      user_creation_time,
+      user_id,
+      uuid,
+      version_name
+    from
+      superapp_events
+  ),
+
+pre_prepared as (
+  select 
+    event_source,
+    first_value(sa_amplitude_id ignore nulls) over(partition by sa_session_id order by event_time rows between unbounded preceding and current row) as filled_sa_amplitude_id,
+    sa_amplitude_id,
+    sa_session_id,
+    event_type,
+    sa_user_properties,
+    sa_event_properties,
+    ma_user_properties,
+    ma_event_properties,
+    event_time,
+    ma_amplitude_id,
+    ma_session_id,
+    app,
+    city,
+    client_event_time,
+    client_upload_time,
+    country,
+    `data`,
+    device_brand,
+    device_carrier,
+    device_family,
+    device_id,
+    device_manufacturer,
+    device_model,
+    device_type,
+    dma,
+    event_id,
+    followed_an_identify,
+    group_properties,
+    `groups`,
+    idfa,
+    ip_address,
+    is_attribution_event,
+    language,
+    library,
+    location_lat,
+    location_lng,
+    os_name,
+    os_version,
+    paying,
+    platform,
+    processed_time,
+    region,
+    sample_rate,
+    server_received_time,
+    server_upload_time,
+    session_id,
+    start_version,
+    user_creation_time,
+    user_id,
+    uuid,
+    version_name
+  from
+    united_data 
+  where 
+    (sa_session_id <> -1 or sa_session_id is null)
+  --   sa_session_id <> -1
+  -- and
+  --   sa_session_id is not null
+  -- and
+  --   event_type in (
+  --     'webapp_open'
+  --     , 'main_page_view'
+  --     , 'payment_screen_loaded'
+  --     , 'payment_confirm'
+  --     , 'sa_session_start'
+  --     -- , 'ma_session_start'
+  --     , 'ma_custom_session_start'
+  --     , 'product_added'
+  --     , 'started_payment'
+  --     , 'done_payment'
+  --   )
+)
+
+select * from pre_prepared
+
+
