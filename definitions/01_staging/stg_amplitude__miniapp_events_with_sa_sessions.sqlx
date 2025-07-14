@@ -1,0 +1,188 @@
+config {
+  type: 'incremental',
+  description: 'Staging table with Amplitude miniapp events and superapp Amplitude session_id ',
+  schema: 'staging',
+  tags: ['amplitude', 'staging'],
+  name: 'stg_amplitude__miniapp_events_with_sa_sessions',
+  bigquery: {
+    partitionBy: 'timestamp_trunc(event_time, day)',
+    updatePartitionFilter:
+        'event_time >= timestamp_sub(current_timestamp(), interval 2 day)',
+    clusterBy: ['ma_amplitude_id', 'event_source']
+  },
+  assertions: {
+    nonNull: ['uuid', 'event_time', 'event_source'],
+    uniqueKey: ['uuid', 'event_time']
+  },
+}
+
+pre_operations {
+  declare timestamp_checkpoint timestamp; 
+  set timestamp_checkpoint = (
+    ${when(incremental(),
+    `ifnull(
+      (
+        select timestamp_sub(timestamp_trunc(max(event_time), day), interval 1 day) 
+        from ${self()} 
+        limit 1
+      ), 
+      timestamp("2025-07-13")
+    )`,
+    `timestamp("2025-07-13")`)
+    }
+  );
+  
+  -- Delete only complete partitions to minimize cost
+  ${when(incremental(),
+      `delete from ${self()} where date(event_time) >= date(timestamp_checkpoint)`
+      )}
+}
+
+-- declare timestamp_checkpoint timestamp; 
+-- set timestamp_checkpoint = "2025-07-13";
+
+with
+  base_miniapp_data as (
+    select 
+      *
+    from(
+        select
+          'ryadom' as event_source,
+          safe_cast(amplitude_id as string) as ma_amplitude_id,
+          safe_cast(null as string) as sa_amplitude_id,
+          safe_cast(null as json) as sa_user_properties,
+          safe_cast(null as json) as sa_event_properties,
+          user_properties as ma_user_properties,
+          event_properties as ma_event_properties,
+          event_time,
+          case
+            when lower(event_type) like 'session_start' then 'ma_session_start'
+            when lower(event_type) like 'session_end' then 'ma_session_end'
+            when lower(event_type) like 'init' then 'ma_custom_session_start'
+            when lower(event_type) like 'reconnect_to_app' then 'ma_custom_session_start'
+            else event_type
+          end as event_type,
+          safe_cast(json_extract_scalar(event_properties, '$.amplitude_session_id') as string) as sa_session_id,
+          safe_cast(session_id as string) as ma_session_id,
+          app,
+          city,
+          client_event_time,
+          client_upload_time,
+          country,
+          `data`,
+          device_brand,
+          device_carrier,
+          device_family,
+          device_id,
+          device_manufacturer,
+          device_model,
+          device_type,
+          dma,
+          event_id,
+          followed_an_identify,
+          group_properties,
+          `groups`,
+          idfa,
+          ip_address,
+          is_attribution_event,
+          language,
+          library,
+          location_lat,
+          location_lng,
+          os_name,
+          os_version,
+          paying,
+          platform,
+          processed_time,
+          region,
+          sample_rate,
+          server_received_time,
+          server_upload_time,
+          session_id,
+          start_version,
+          user_creation_time,
+          user_id,
+          uuid,
+          version_name,
+          row_number() over(partition by uuid) as rn
+        from
+          ${ref('EVENTS_296820')}
+        where
+          event_time > timestamp_checkpoint
+        and
+          lower(event_type) not like '%[amplitude]%'
+        and
+          lower(json_extract_scalar(event_properties, '$.currentApp')) like "miniapp"
+        )
+    where
+      rn = 1
+),
+
+miniapp_events as (
+  select
+    bd.* except(sa_session_id),
+    case
+      when event_type like 'ma_session_start' then lead(sa_session_id) over(partition by ma_amplitude_id order by event_time)
+      when event_type like 'ma_session_end' then lag(sa_session_id) over(partition by ma_amplitude_id order by event_time)
+      else sa_session_id
+    end as sa_session_id
+  from 
+    base_miniapp_data bd
+  )
+
+select
+    event_source,
+    ma_amplitude_id,
+    sa_amplitude_id,
+    sa_user_properties,
+    sa_event_properties,
+    ma_user_properties,
+    ma_event_properties,
+    event_time,
+    event_type,
+    sa_session_id,
+    ma_session_id,
+    app,
+    city,
+    client_event_time,
+    client_upload_time,
+    country,
+    `data`,
+    device_brand,
+    device_carrier,
+    device_family,
+    device_id,
+    device_manufacturer,
+    device_model,
+    device_type,
+    dma,
+    event_id,
+    followed_an_identify,
+    group_properties,
+    `groups`,
+    idfa,
+    ip_address,
+    is_attribution_event,
+    language,
+    library,
+    location_lat,
+    location_lng,
+    os_name,
+    os_version,
+    paying,
+    platform,
+    processed_time,
+    region,
+    sample_rate,
+    server_received_time,
+    server_upload_time,
+    session_id,
+    start_version,
+    user_creation_time,
+    user_id,
+    uuid,
+    version_name
+from
+    miniapp_events
+
+

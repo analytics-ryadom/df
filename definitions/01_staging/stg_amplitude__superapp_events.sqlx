@@ -1,0 +1,169 @@
+config {
+  type: 'incremental',
+  description: 'Staging table with superapp events from Amplitude',
+  schema: 'staging',
+  tags: ['amplitude', 'staging'],
+  name: 'stg_amplitude__superapp_events',
+  bigquery: {
+    partitionBy: 'timestamp_trunc(event_time, day)',
+    updatePartitionFilter:
+        'event_time >= timestamp_sub(current_timestamp(), interval 2 day)',
+    clusterBy: ['sa_amplitude_id', 'event_source']
+  },
+  assertions: {
+    nonNull: ['uuid', 'event_time', 'event_source'],
+    uniqueKey: ['uuid', 'event_time']
+  },
+}
+
+pre_operations {
+  declare timestamp_checkpoint timestamp; 
+  set timestamp_checkpoint = (
+    ${when(incremental(),
+    `ifnull(
+      (
+        select timestamp_sub(timestamp_trunc(max(event_time), day), interval 1 day) 
+        from ${self()} 
+        limit 1
+      ), 
+      timestamp("2025-07-13")
+    )`,
+    `timestamp("2025-07-13")`)
+    }
+  );
+  
+  -- Delete only complete partitions to minimize cost
+  ${when(incremental(),
+      `delete from ${self()} where date(event_time) >= date(timestamp_checkpoint)`
+      )}
+}
+
+-- declare timestamp_checkpoint timestamp; 
+-- set timestamp_checkpoint = "2025-07-13";
+
+with
+  superapp_events as (
+    select
+      *
+    from(
+      select
+        'superapp' as event_source,
+        safe_cast(null as string) as ma_amplitude_id,
+        safe_cast(amplitude_id as string) as sa_amplitude_id,
+        user_properties as sa_user_properties,
+        event_properties as sa_event_properties,
+        safe_cast(null as json) as ma_user_properties,
+        safe_cast(null as json) as ma_event_properties,
+        event_time,
+        case
+          when lower(event_type) like 'session_start' then 'sa_session_start'
+          when lower(event_type) like 'session_end' then 'sa_session_end'
+          else event_type
+        end as event_type,
+        safe_cast(session_id as string) as sa_session_id,
+        safe_cast(null as string) as ma_session_id,
+        app,
+        city,
+        client_event_time,
+        client_upload_time,
+        country,
+        `data`,
+        device_brand,
+        device_carrier,
+        device_family,
+        device_id,
+        device_manufacturer,
+        device_model,
+        device_type,
+        dma,
+        event_id,
+        followed_an_identify,
+        group_properties,
+        `groups`,
+        idfa,
+        ip_address,
+        is_attribution_event,
+        language,
+        library,
+        location_lat,
+        location_lng,
+        os_name,
+        os_version,
+        paying,
+        platform,
+        processed_time,
+        region,
+        sample_rate,
+        server_received_time,
+        server_upload_time,
+        session_id,
+        start_version,
+        user_creation_time,
+        user_id,
+        uuid,
+        version_name,
+        row_number() over(partition by uuid) as rn
+      from
+        ${ref('EVENTS_415371')}
+      where
+        event_time > timestamp_checkpoint
+      )
+    where rn = 1
+  )
+
+select
+  event_source,
+  ma_amplitude_id,
+  sa_amplitude_id,
+  sa_user_properties,
+  sa_event_properties,
+  ma_user_properties,
+  ma_event_properties,
+  event_time,
+  event_type,
+  sa_session_id,
+  ma_session_id,
+  app,
+  city,
+  client_event_time,
+  client_upload_time,
+  country,
+  `data`,
+  device_brand,
+  device_carrier,
+  device_family,
+  device_id,
+  device_manufacturer,
+  device_model,
+  device_type,
+  dma,
+  event_id,
+  followed_an_identify,
+  group_properties,
+  `groups`,
+  idfa,
+  ip_address,
+  is_attribution_event,
+  language,
+  library,
+  location_lat,
+  location_lng,
+  os_name,
+  os_version,
+  paying,
+  platform,
+  processed_time,
+  region,
+  sample_rate,
+  server_received_time,
+  server_upload_time,
+  session_id,
+  start_version,
+  user_creation_time,
+  user_id,
+  uuid,
+  version_name
+from
+  superapp_events
+
+

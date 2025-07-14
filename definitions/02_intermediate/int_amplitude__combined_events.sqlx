@@ -1,0 +1,252 @@
+config {
+  type: 'incremental',
+  description: 'Intermediate table combining miniapp and superapp events from Amplitude',
+  schema: 'intermediate',
+  tags: ['amplitude', 'intermediate'],
+  name: 'int_amplitude__combined_events',
+  bigquery: {
+    partitionBy: 'timestamp_trunc(event_time, day)',
+    updatePartitionFilter:
+        'event_time >= timestamp_sub(current_timestamp(), interval 2 day)',
+    clusterBy: ['filled_sa_amplitude_id', 'event_source', 'event_type']
+  },
+  assertions: {
+    nonNull: ['uuid', 'event_time', 'event_source'],
+    uniqueKey: ['event_id'],
+    rowConditions: [
+      'event_time >= timestamp("2025-01-01")',
+      'event_time <= current_timestamp()'
+    ]
+  },
+}
+
+pre_operations {
+  declare timestamp_checkpoint timestamp; 
+  set timestamp_checkpoint = (
+    ${when(incremental(),
+    `ifnull(
+      (
+        select timestamp_sub(timestamp_trunc(max(event_time), day), interval 1 day) 
+        from ${self()} 
+        limit 1
+      ), 
+      timestamp("2025-07-13")
+    )`,
+    `timestamp("2025-07-13")`)
+    }
+  );
+  
+  -- Delete only complete partitions to minimize cost
+  ${when(incremental(),
+      `delete from ${self()} where date(event_time) >= date(timestamp_checkpoint)`
+      )}
+}
+
+with
+  united_data as (
+    select
+      event_source,
+      ma_amplitude_id,
+      sa_amplitude_id,
+      sa_user_properties,
+      sa_event_properties,
+      ma_user_properties,
+      ma_event_properties,
+      event_time,
+      event_type,
+      sa_session_id,
+      ma_session_id,
+      app,
+      city,
+      client_event_time,
+      client_upload_time,
+      country,
+      `data`,
+      device_brand,
+      device_carrier,
+      device_family,
+      device_id,
+      device_manufacturer,
+      device_model,
+      device_type,
+      dma,
+      event_id,
+      followed_an_identify,
+      group_properties,
+      `groups`,
+      idfa,
+      ip_address,
+      is_attribution_event,
+      language,
+      library,
+      location_lat,
+      location_lng,
+      os_name,
+      os_version,
+      paying,
+      platform,
+      processed_time,
+      region,
+      sample_rate,
+      server_received_time,
+      server_upload_time,
+      session_id,
+      start_version,
+      user_creation_time,
+      user_id,
+      uuid,
+      version_name
+    from
+      ${ref('stg_amplitude__superapp_events')}
+    where
+      ${when(incremental(), 
+          `date(event_time) >= date(timestamp_checkpoint)`, 
+          `date(event_time) >= date(timestamp("2025-07-13"))`)}
+    
+    union all
+    
+    select
+      event_source,
+      ma_amplitude_id,
+      sa_amplitude_id,
+      sa_user_properties,
+      sa_event_properties,
+      ma_user_properties,
+      ma_event_properties,
+      event_time,
+      event_type,
+      sa_session_id,
+      ma_session_id,
+      app,
+      city,
+      client_event_time,
+      client_upload_time,
+      country,
+      `data`,
+      device_brand,
+      device_carrier,
+      device_family,
+      device_id,
+      device_manufacturer,
+      device_model,
+      device_type,
+      dma,
+      event_id,
+      followed_an_identify,
+      group_properties,
+      `groups`,
+      idfa,
+      ip_address,
+      is_attribution_event,
+      language,
+      library,
+      location_lat,
+      location_lng,
+      os_name,
+      os_version,
+      paying,
+      platform,
+      processed_time,
+      region,
+      sample_rate,
+      server_received_time,
+      server_upload_time,
+      session_id,
+      start_version,
+      user_creation_time,
+      user_id,
+      uuid,
+      version_name  
+    from
+      ${ref('stg_amplitude__miniapp_events_with_sa_sessions')}
+    where
+      ${when(incremental(), 
+          `date(event_time) >= date(timestamp_checkpoint)`, 
+          `date(event_time) >= date(timestamp("2025-07-13"))`)}
+  ),
+
+  -- Optimize session filling with analytical approach
+  session_filled as (
+    select 
+      *,
+      -- Use last_value with proper frame for better performance
+      last_value(sa_amplitude_id ignore nulls) over(
+        partition by sa_session_id 
+        order by event_time 
+        rows between unbounded preceding and unbounded following
+      ) as filled_sa_amplitude_id
+    from
+      united_data
+    where
+      (sa_session_id <> '-1' or sa_session_id is null)
+  ),
+
+  -- Final preparation with deduplication
+  pre_prepared as (
+    select 
+      event_source,
+      filled_sa_amplitude_id,
+      sa_amplitude_id,
+      sa_session_id,
+      event_type,
+      sa_user_properties,
+      sa_event_properties,
+      ma_user_properties,
+      ma_event_properties,
+      event_time,
+      ma_amplitude_id,
+      ma_session_id,
+      app,
+      city,
+      client_event_time,
+      client_upload_time,
+      country,
+      `data`,
+      device_brand,
+      device_carrier,
+      device_family,
+      device_id,
+      device_manufacturer,
+      device_model,
+      device_type,
+      dma,
+      event_id,
+      followed_an_identify,
+      group_properties,
+      `groups`,
+      idfa,
+      ip_address,
+      is_attribution_event,
+      language,
+      library,
+      location_lat,
+      location_lng,
+      os_name,
+      os_version,
+      paying,
+      platform,
+      processed_time,
+      region,
+      sample_rate,
+      server_received_time,
+      server_upload_time,
+      session_id,
+      start_version,
+      user_creation_time,
+      user_id,
+      uuid,
+      version_name,
+      -- Add row number for deduplication
+      row_number() over(
+        partition by event_id 
+        order by server_received_time desc
+      ) as rn
+    from
+      session_filled
+    where
+      date(event_time) <= current_date()
+  )
+
+select * except(rn)
+from pre_prepared 
+where rn = 1

@@ -1,0 +1,101 @@
+config {
+  type: 'incremental',
+  description: 'Data quality mart for Amplitude miniapp and combined events monitoring',
+  schema: 'mart',
+  tags: ['amplitude', 'amplitude_combining_data_quality', 'mart'],
+  name: 'mart_amplitude__events_quality_metrics',
+  bigquery: {
+    partitionBy: 'dt',
+    updatePartitionFilter: 'dt >= date_sub(current_date(), interval 2 day)',
+    clusterBy: ['device_family', '_qa_run_dt']
+  },
+  assertions: {
+    nonNull: ['_qa_run_dt', 'dt'],
+    uniqueKey: ['_qa_run_dt', 'dt', 'device_family', 'user_agent_version'],
+    rowConditions: [
+      'dt >= date("2025-01-01")',
+      'dt <= current_date()'
+    ]
+  }
+}
+
+pre_operations {
+  declare date_checkpoint date; 
+  set date_checkpoint = (
+    ${when(incremental(),
+    `ifnull(
+      (
+        select date_sub(max(dt), interval 1 day) 
+        from ${self()} 
+        limit 1
+      ), 
+      date("2025-07-13")
+    )`,
+    `date("2025-07-13")`)
+    }
+  );
+  
+  -- Delete only complete partitions to minimize cost
+  ${when(incremental(),
+      `delete from ${self()} where dt >= date_checkpoint`
+      )}
+}
+
+-- declare date_checkpoint datetime; 
+-- set date_checkpoint = "2025-07-13";
+
+with ma_events_quality_check as (
+  select
+    current_date() as _qa_run_dt,
+    date(event_time) as dt,
+    device_family,
+    array_reverse(split(json_extract_scalar(ma_event_properties, '$.user_agent'), '/'))[safe_offset(0)] as user_agent_version,
+    count(uuid) as events_cnt,
+    countif(sa_session_id is null) as events_null_sa_session,
+    count(distinct ma_amplitude_id) as ma_amplitude_id_cnt,
+    count(distinct case when sa_session_id is null then ma_amplitude_id end) as unique_amplitude_ids_null_sa_session
+  from
+    ${ref('stg_amplitude__miniapp_events_with_sa_sessions')}
+  where
+    date(event_time) >= date_checkpoint
+  group by
+    1, 2, 3, 4
+),
+
+combining_quality_check as (
+  select
+    current_date() as _qa_run_dt,
+    date(event_time) as dt,
+    device_family,
+    array_reverse(split(json_extract_scalar(ma_event_properties, '$.user_agent'), '/'))[safe_offset(0)] as user_agent_version,
+    count(distinct case when filled_sa_amplitude_id is null then ma_session_id end) as empty_filled_sa_amplitude_id_sessions_cnt,
+    count(distinct ma_session_id) as combined_ma_session_id_cnt
+  from
+    ${ref('int_amplitude__combined_events')}
+  where
+    date(event_time) >= date_checkpoint
+  group by
+    1, 2, 3, 4
+)
+
+select
+  ma._qa_run_dt,
+  ma.dt,
+  ma.device_family,
+  ma.user_agent_version,
+  ma.events_cnt as ma_events_cnt,
+  ma.events_null_sa_session as ma_events_null_sa_session,
+  ma.ma_amplitude_id_cnt,
+  ma.unique_amplitude_ids_null_sa_session,
+  coalesce(c.empty_filled_sa_amplitude_id_sessions_cnt, 0) as int_empty_filled_sa_amplitude_id_sessions_cnt,
+  coalesce(c.combined_ma_session_id_cnt, 0) as int_combined_ma_session_id_cnt
+from
+  ma_events_quality_check ma
+left join
+  combining_quality_check c
+  on ma._qa_run_dt = c._qa_run_dt
+  and ma.dt = c.dt
+  and ma.device_family = c.device_family
+  and ma.user_agent_version = c.user_agent_version
+where
+    ma.dt <= current_date()
