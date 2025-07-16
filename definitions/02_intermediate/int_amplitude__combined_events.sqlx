@@ -2,7 +2,7 @@ config {
   type: 'incremental',
   description: 'Intermediate table combining miniapp and superapp events from Amplitude',
   schema: 'intermediate',
-  tags: ['amplitude', 'intermediate'],
+  tags: ['amplitude', 'intermediate', 'combining'],
   name: 'int_amplitude__combined_events',
   bigquery: {
     partitionBy: 'timestamp_trunc(event_time, day)',
@@ -178,7 +178,7 @@ with
     from
       united_data
     where
-      (sa_session_id <> '-1' or sa_session_id is null)
+      sa_session_id <> '-1' and sa_session_id is not null
   ),
 
   -- Final preparation with deduplication
