@@ -50,10 +50,12 @@ with ma_events_quality_check as (
     date(event_time) as dt,
     device_family,
     array_reverse(split(json_extract_scalar(ma_event_properties, '$.user_agent'), '/'))[safe_offset(0)] as user_agent_version,
-    count(uuid) as events_cnt,
-    countif(sa_session_id is null) as events_null_sa_session,
-    count(distinct ma_amplitude_id) as ma_amplitude_id_cnt,
-    count(distinct case when sa_session_id is null then ma_amplitude_id end) as unique_amplitude_ids_null_sa_session
+    count(uuid) as ma_events_cnt,
+    countif(sa_session_id is null) as ma_events_with_null_sa_session,
+    count(distinct case when sa_session_id is null then ma_session_id end) as unq_ma_session_ids_with_null_sa_session,
+    count(distinct ma_session_id) as unq_ma_session_ids,
+    count(distinct ma_amplitude_id) as unq_ma_amp_ids_cnt,
+    count(distinct case when sa_session_id is null then ma_amplitude_id end) as unq_ma_amp_ids_with_null_sa_session
   from
     ${ref('stg_amplitude__miniapp_events_with_sa_sessions')}
   where
@@ -83,10 +85,12 @@ select
   ma.dt,
   ma.device_family,
   ma.user_agent_version,
-  ma.events_cnt as ma_events_cnt,
-  ma.events_null_sa_session as ma_events_null_sa_session,
-  ma.ma_amplitude_id_cnt,
-  ma.unique_amplitude_ids_null_sa_session,
+  ma.ma_events_cnt,
+  ma.ma_events_with_null_sa_session,
+  ma.unq_ma_session_ids,
+  ma.unq_ma_session_ids_with_null_sa_session,
+  ma.unq_ma_amp_ids_cnt,
+  ma.unq_ma_amp_ids_with_null_sa_session,
   coalesce(c.empty_filled_sa_amplitude_id_sessions_cnt, 0) as int_empty_filled_sa_amplitude_id_sessions_cnt,
   coalesce(c.combined_ma_session_id_cnt, 0) as int_combined_ma_session_id_cnt
 from
