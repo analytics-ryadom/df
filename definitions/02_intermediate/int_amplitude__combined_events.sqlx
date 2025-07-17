@@ -12,7 +12,7 @@ config {
   },
   assertions: {
     nonNull: ['uuid', 'event_time', 'event_source'],
-    uniqueKey: ['event_id'],
+    uniqueKey: ['uuid'],
     rowConditions: [
       'event_time >= timestamp("2025-01-01")',
       'event_time <= current_timestamp()'
