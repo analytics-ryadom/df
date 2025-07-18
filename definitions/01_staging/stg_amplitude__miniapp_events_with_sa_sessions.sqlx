@@ -7,7 +7,7 @@ config {
   bigquery: {
     partitionBy: 'timestamp_trunc(event_time, day)',
     updatePartitionFilter:
-        'event_time >= timestamp_sub(current_timestamp(), interval 2 day)',
+        'event_time >= timestamp_sub(current_timestamp(), interval 3 day)',
     clusterBy: ['ma_amplitude_id', 'event_source']
   },
   assertions: {
@@ -20,14 +20,9 @@ pre_operations {
   declare timestamp_checkpoint timestamp; 
   set timestamp_checkpoint = (
     ${when(incremental(),
-    `ifnull(
-      (
-        select timestamp_sub(timestamp_trunc(max(event_time), day), interval 1 day) 
-        from ${self()} 
-        limit 1
-      ), 
-      timestamp("2025-07-13")
-    )`,
+    `select timestamp_sub(timestamp_trunc(max(event_time), day), interval 2 day) 
+    from ${self()} 
+    limit 1`,
     `timestamp("2025-07-13")`)
     }
   );

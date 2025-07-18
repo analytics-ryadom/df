@@ -20,14 +20,9 @@ pre_operations {
   declare timestamp_checkpoint timestamp; 
   set timestamp_checkpoint = (
     ${when(incremental(),
-    `ifnull(
-      (
-        select timestamp_sub(timestamp_trunc(max(event_time), day), interval 1 day) 
+    `select timestamp_sub(timestamp_trunc(max(event_time), day), interval 2 day) 
         from ${self()} 
-        limit 1
-      ), 
-      timestamp("2025-07-13")
-    )`,
+        limit 1`,
     `timestamp("2025-07-13")`)
     }
   );
