@@ -51,8 +51,6 @@ with
           event_properties as ma_event_properties,
           event_time,
           case
-            when lower(event_type) like 'session_start' then 'ma_session_start'
-            when lower(event_type) like 'session_end' then 'ma_session_end'
             when lower(event_type) like 'init' then 'ma_custom_session_start'
             when lower(event_type) like 'reconnect_to_app' then 'ma_custom_session_start'
             else event_type
@@ -107,23 +105,15 @@ with
         and
           lower(event_type) not like '%[amplitude]%'
         and
+          lower(event_type) not like 'session_start'
+        and
+          lower(event_type) not like 'session_end'
+        and
           lower(json_extract_scalar(event_properties, '$.currentApp')) like "miniapp"
         )
     where
       rn = 1
-),
-
-miniapp_events as (
-  select
-    bd.* except(sa_session_id),
-    case
-      when event_type like 'ma_session_start' then lead(sa_session_id) over(partition by ma_amplitude_id order by event_time)
-      when event_type like 'ma_session_end' then lag(sa_session_id) over(partition by ma_amplitude_id order by event_time)
-      else sa_session_id
-    end as sa_session_id
-  from 
-    base_miniapp_data bd
-  )
+)
 
 select
     event_source,
@@ -178,6 +168,6 @@ select
     uuid,
     version_name
 from
-    miniapp_events
+    base_miniapp_data
 
 
