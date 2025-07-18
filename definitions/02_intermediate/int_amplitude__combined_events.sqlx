@@ -160,16 +160,12 @@ with
     from
       ${ref('stg_amplitude__miniapp_events_with_sa_sessions')}
     where
-      ${when(incremental(), 
-          `date(event_time) >= date(timestamp_checkpoint)`, 
-          `date(event_time) >= date(timestamp("2025-07-13"))`)}
+      date(event_time) >= date(timestamp_checkpoint)
   ),
 
-  -- Optimize session filling with analytical approach
   session_filled as (
     select 
       *,
-      -- Use last_value with proper frame for better performance
       last_value(sa_amplitude_id ignore nulls) over(
         partition by sa_session_id 
         order by event_time 
@@ -181,7 +177,6 @@ with
       sa_session_id <> '-1' and sa_session_id is not null
   ),
 
-  -- Final preparation with deduplication
   pre_prepared as (
     select 
       event_source,
@@ -236,7 +231,6 @@ with
       user_id,
       uuid,
       version_name,
-      -- Add row number for deduplication
       row_number() over(
         partition by event_id 
         order by server_received_time desc
