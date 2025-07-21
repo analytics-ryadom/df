@@ -16,16 +16,26 @@ config {
   },
 }
 
+ -- Calculate checkpoint from the latest valid event timestamp
+ -- Excludes events from future dates caused by incorrect device time settings
 pre_operations {
-  declare timestamp_checkpoint timestamp; 
-  set timestamp_checkpoint = (
-    ${when(incremental(),
-    `select timestamp_sub(timestamp_trunc(max(event_time), day), interval 2 day) 
-        from ${self()} 
-        limit 1`,
-    `timestamp("2025-07-13")`)
-    }
-  );
+ declare timestamp_checkpoint timestamp; 
+ 
+ -- Calculate checkpoint from the latest valid event timestamp
+ -- Excludes events from future dates caused by incorrect device time settings
+ -- ~40-50 events out of 300k typically have wrong timestamps due to user device clock issues
+ set timestamp_checkpoint = (
+   ${when(incremental(),
+   `select timestamp_sub(timestamp_trunc(
+     coalesce(
+       max(case when event_time <= current_timestamp() then event_time end),
+       current_timestamp()
+     ), day), interval 1 day) 
+   from ${self()} 
+   limit 1`,
+   `timestamp("2025-07-13")`)
+   }
+ );
   
   -- Delete only complete partitions to minimize cost
   ${when(incremental(),

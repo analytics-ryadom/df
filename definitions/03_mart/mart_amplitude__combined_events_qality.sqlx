@@ -23,14 +23,9 @@ pre_operations {
   declare date_checkpoint date; 
   set date_checkpoint = (
     ${when(incremental(),
-    `ifnull(
-      (
-        select date_sub(max(dt), interval 1 day) 
+    `select date_sub(max(dt), interval 2 day) 
         from ${self()} 
-        limit 1
-      ), 
-      date("2025-07-13")
-    )`,
+        limit 1`,
     `date("2025-07-13")`)
     }
   );

@@ -26,7 +26,7 @@ pre_operations {
     ${when(incremental(),
     `ifnull(
       (
-        select timestamp_sub(timestamp_trunc(max(event_time), day), interval 1 day) 
+        select timestamp_sub(timestamp_trunc(max(event_time), day), interval 2 day) 
         from ${self()} 
         limit 1
       ), 
@@ -99,9 +99,7 @@ with
     from
       ${ref('stg_amplitude__superapp_events')}
     where
-      ${when(incremental(), 
-          `date(event_time) >= date(timestamp_checkpoint)`, 
-          `date(event_time) >= date(timestamp("2025-07-13"))`)}
+      date(event_time) >= date(timestamp_checkpoint)
     
     union all
     

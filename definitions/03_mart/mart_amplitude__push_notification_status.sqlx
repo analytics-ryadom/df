@@ -1,0 +1,65 @@
+config {
+  type: 'incremental',
+  description: 'User push notification permission status from Ryadom miniapp events',
+  schema: 'mart',
+  tags: ['amplitude', 'push_notifications', 'mart'],
+  name: 'mart_amplitude__push_notification_status',
+  bigquery: {
+    partitionBy: 'event_date',
+    updatePartitionFilter: 'event_date >= date_sub(current_date(), interval 2 day)',
+    clusterBy: ['filled_sa_amplitude_id', 'ma_push_granted']
+  },
+  assertions: {
+    nonNull: ['_updated_dt', 'event_date', 'filled_sa_amplitude_id'],
+    uniqueKey: ['_updated_dt', 'filled_sa_amplitude_id'],
+    rowConditions: [
+      'event_date >= date("2025-01-01")',
+      'event_date <= current_date()'
+    ]
+  }
+}
+
+pre_operations {
+  declare date_checkpoint date; 
+  set date_checkpoint = (
+    ${when(incremental(),
+    `select date_sub(max(event_date), interval 1 day) 
+        from ${self()} 
+        limit 1`,
+    `date("2025-07-09")`)
+    }
+  );
+  
+  -- Delete only complete partitions to minimize cost
+  ${when(incremental(),
+      `delete from ${self()} where event_date >= date_checkpoint`
+      )}
+}
+
+with _base_data as (
+  select
+    current_date() as _updated_dt,
+    date(event_time) as event_date,
+    filled_sa_amplitude_id,
+    ma_amplitude_id,
+    case
+      when json_extract_scalar(ma_event_properties, '$.status') like 'granted' then 'true'
+      when json_extract_scalar(ma_event_properties, '$.status') like 'denied' then 'false'
+      when json_extract_scalar(ma_event_properties, '$.status') like 'notDetermined' then 'unknown'
+    end as ma_push_granted,
+    row_number() over(partition by filled_sa_amplitude_id order by event_time desc) as rnk
+  from
+    ${ref('int_amplitude__combined_events')}
+  where
+    event_type like 'on_notifications_init'
+  and
+    event_source like 'ryadom'
+  and
+    date(event_time) >= date_checkpoint
+  qualify
+    rnk = 1
+)
+
+select * except(rnk) 
+from _base_data
+where event_date <= current_date()
