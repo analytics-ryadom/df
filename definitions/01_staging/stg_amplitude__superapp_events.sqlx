@@ -37,7 +37,7 @@ pre_operations {
    }
  );
   
-  -- Delete only complete partitions to minimize cost
+
   ${when(incremental(),
       `delete from ${self()} where date(event_time) >= date(timestamp_checkpoint)`
       )}
@@ -111,7 +111,7 @@ with
       from
         ${ref('EVENTS_415371')}
       where
-        event_time > timestamp_checkpoint
+        event_time >= timestamp_checkpoint
       )
     where rn = 1
   )
