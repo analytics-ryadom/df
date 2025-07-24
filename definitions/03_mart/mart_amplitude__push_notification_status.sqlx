@@ -62,4 +62,4 @@ with _base_data as (
 
 select * except(rnk) 
 from _base_data
-where event_date <= current_date()
+where event_date < current_date()
