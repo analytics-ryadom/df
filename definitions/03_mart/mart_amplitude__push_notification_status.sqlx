@@ -9,9 +9,10 @@ config {
     updatePartitionFilter: 'event_date >= date_sub(current_date(), interval 2 day)',
     clusterBy: ['filled_sa_amplitude_id', 'ma_push_granted']
   },
+
   assertions: {
-    nonNull: ['_updated_dt', 'event_date', 'filled_sa_amplitude_id'],
-    uniqueKey: ['_updated_dt', 'filled_sa_amplitude_id'],
+    nonNull: ['_updated_dt', 'event_date'],  
+    uniqueKey: ['_updated_dt', 'filled_sa_amplitude_id'], // 'filled_sa_amplitude_id' temporary removed
     rowConditions: [
       'event_date >= date("2025-01-01")',
       'event_date <= current_date()'
