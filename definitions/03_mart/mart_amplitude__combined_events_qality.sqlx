@@ -96,4 +96,4 @@ left join
   and ma.device_family = c.device_family
   and ma.user_agent_version = c.user_agent_version
 where
-    ma.dt <= current_date()
+    ma.dt < current_date()
