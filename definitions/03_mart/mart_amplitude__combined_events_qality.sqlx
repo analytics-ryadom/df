@@ -6,7 +6,7 @@ config {
   name: 'mart_amplitude__events_quality_metrics',
   bigquery: {
     partitionBy: 'dt',
-    updatePartitionFilter: 'dt >= date_sub(current_date(), interval 2 day)',
+    updatePartitionFilter: 'dt >= date_sub(current_date(), interval 3 day)',
     clusterBy: ['device_family', '_qa_run_dt']
   },
   assertions: {
@@ -14,7 +14,7 @@ config {
     uniqueKey: ['_qa_run_dt', 'dt', 'device_family', 'user_agent_version'],
     rowConditions: [
       'dt >= date("2025-01-01")',
-      'dt <= current_date()'
+      'dt < current_date()'
     ]
   }
 }
