@@ -6,8 +6,7 @@ config {
   name: 'int_amplitude__combined_events',
   bigquery: {
     partitionBy: 'timestamp_trunc(event_time, day)',
-    updatePartitionFilter:
-        'event_time >= timestamp_sub(current_timestamp(), interval 2 day)',
+    updatePartitionFilter: 'event_time >= timestamp_sub(current_timestamp(), interval 2 day)',
     clusterBy: ['filled_sa_amplitude_id', 'event_source', 'event_type']
   },
   assertions: {
@@ -28,7 +27,6 @@ pre_operations {
       (
         select timestamp_sub(timestamp_trunc(max(event_time), day), interval 2 day) 
         from ${self()} 
-        limit 1
       ), 
       timestamp("2025-07-13")
     )`,
@@ -158,6 +156,8 @@ with
       ${ref('stg_amplitude__miniapp_events_with_sa_sessions')}
     where
       date(event_time) >= date(timestamp_checkpoint)
+    and
+      sa_session_id is not null and sa_session_id != '-1'
   ),
 
   session_filled as (
@@ -170,8 +170,7 @@ with
       ) as filled_sa_amplitude_id
     from
       united_data
-    where
-      sa_session_id <> '-1' and sa_session_id is not null
+
   ),
 
   pre_prepared as (
@@ -229,7 +228,7 @@ with
       uuid,
       version_name,
       row_number() over(
-        partition by event_id 
+        partition by uuid 
         order by server_received_time desc
       ) as rn
     from
@@ -238,6 +237,8 @@ with
       date(event_time) <= current_date()
   )
 
-select * except(rn)
-from pre_prepared 
-where rn = 1
+select * except(rn) from pre_prepared where rn = 1
+
+
+
+
