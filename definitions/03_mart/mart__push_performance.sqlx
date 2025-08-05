@@ -83,3 +83,5 @@ on
   spa.push_sent_date = pfa.push_opened_date
 and
   spa.hypo_id = pfa.hypo_id
+where
+  push_opened_date < current_date()
