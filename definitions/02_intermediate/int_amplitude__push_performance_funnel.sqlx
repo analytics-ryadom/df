@@ -1,0 +1,227 @@
+config {
+  type: 'incremental',
+  description: 'Intermediate table aggregating push performance funnel Amplitude',
+  schema: 'intermediate',
+  tags: ['amplitude', 'intermediate', 'push_performance'],
+  name: 'int_amplitude__push_performance_funnel',
+  bigquery: {
+    partitionBy: 'push_opened_date',
+    updatePartitionFilter: 'push_opened_date >= date_sub(current_date(), interval 2 day)',
+    clusterBy: ['push_id', 'hypo_id']
+  },
+  assertions: {
+    nonNull: ['hypo_id', 'push_id', 'filled_sa_amplitude_id']
+  },
+}
+
+pre_operations {
+    declare date_checkpoint date; 
+    declare push_open_ma_session_start_atributiuon_window int64; 
+    declare ma_session_start_product_added_atributiuon_window int64; 
+    declare product_added_payment_started_atributiuon_window int64; 
+    declare payment_started_done_payment_atributiuon_window int64; 
+
+    set push_open_ma_session_start_atributiuon_window = 1; -- set attribution window in minutes between time when mini app was opened and mini app session started
+    set ma_session_start_product_added_atributiuon_window = 30; -- set attribution window in minutes between time when mini app session started and product was added
+    set product_added_payment_started_atributiuon_window = 300; -- set attribution window in minutes between time when product was added and payment started
+    set payment_started_done_payment_atributiuon_window = 1; -- set attribution window in minutes between time when payment started and payment complited
+    set date_checkpoint = (
+      ${when(incremental(),
+      `ifnull(
+        (
+          select date_sub(max(push_opened_date), interval 2 day) 
+          from ${self()} 
+        ), 
+        "2025-08-01"
+      )`,
+      "2025-08-01")
+      }
+  );
+  
+  ${when(incremental(),
+      `delete from ${self()} where push_opened_date >= date_checkpoint`
+      )}
+}
+
+
+with _push_opens as ( 
+  select
+    event_source,
+    uuid,
+    event_type,
+    event_time,
+    filled_sa_amplitude_id,
+    user_id,
+    sa_session_id,
+    city,
+    device_id as sa_device_id,
+    coalesce(lower(json_extract_scalar(ma_event_properties, "$.operating_system")), lower(platform)) as platform,
+    json_extract_scalar(sa_event_properties, "$['notification_data.deeplink']") as deeplink,
+    json_value(sa_event_properties, '$."notification_data.push_id"') as push_id,
+    json_value(sa_event_properties, '$."notification_data.hypo_id"') as hypo_id,
+    json_extract_scalar(sa_event_properties, "$.title") as push_title
+  from
+    ${ref('int_amplitude__combined_events')}
+  where
+    event_type = 'push_notification_open'
+  and
+    date(event_time)  >= date_checkpoint
+ ),
+
+_ma_session_starts as (
+  select
+    event_source,
+    event_type,
+    event_time,
+    filled_sa_amplitude_id,
+    user_id,
+    sa_session_id,
+    uuid,
+    device_id as ma_device_id
+  from
+    ${ref('int_amplitude__combined_events')}
+  where
+    event_type = 'ma_custom_session_start'
+  and
+    date(event_time)  >= date_checkpoint
+
+),
+
+_product_additions as (
+  select
+    event_source,
+    uuid,
+    event_type,
+    event_time,
+    filled_sa_amplitude_id,
+    user_id,
+    sa_session_id,
+    uuid
+  from
+    ${ref('int_amplitude__combined_events')}
+  where
+    event_type = 'product_added'
+  and
+    date(event_time)  >= date_checkpoint
+
+),
+
+_payment_starts as (
+  select
+    event_source,
+    uuid,
+    event_type,
+    event_time,
+    filled_sa_amplitude_id,
+    user_id,
+    sa_session_id,
+    uuid
+  from
+    ${ref('int_amplitude__combined_events')}
+  where
+    event_type = 'started_payment'
+  and
+    date(event_time)  >= date_checkpoint
+
+),
+
+_done_payments as (
+  select
+    event_source,
+    uuid,
+    event_type,
+    event_time,
+    filled_sa_amplitude_id,
+    user_id,
+    sa_session_id,
+    uuid
+  from
+    ${ref('int_amplitude__combined_events')}
+  where
+    event_type = 'done_payment'
+  and
+    date(event_time)  >= date_checkpoint
+
+)
+,
+
+_funnel_base as (
+  select
+    po.platform,
+    po.city,
+    po.filled_sa_amplitude_id,
+    po.user_id,
+    ma_device_id,
+    date(po.event_time) as push_opened_date,
+    po.push_id,
+    po.hypo_id,
+    po.push_title,
+    po.event_time as push_open_datetime,
+    ss.event_time as ma_session_started_datetime,
+    pa.event_time as product_added_datetime,
+    ps.event_time as payment_started_datetime,
+    dp.event_time as done_payment_datetime
+  from
+    _push_opens po
+  left join
+    _ma_session_starts ss
+  on
+    po.filled_sa_amplitude_id = ss.filled_sa_amplitude_id
+  and
+    (ss.event_time > po.event_time and date_diff(ss.event_time, po.event_time, minute) < push_open_ma_session_start_atributiuon_window)
+  left join
+    _product_additions pa
+  on
+    ss.filled_sa_amplitude_id = pa.filled_sa_amplitude_id
+  and
+    (pa.event_time > ss.event_time and date_diff(pa.event_time, ss.event_time, minute) < ma_session_start_product_added_atributiuon_window)
+  left join
+    _payment_starts ps
+  on
+    pa.filled_sa_amplitude_id = ps.filled_sa_amplitude_id
+  and
+    (ps.event_time > pa.event_time and date_diff(ps.event_time, pa.event_time, minute) < product_added_payment_started_atributiuon_window)
+  left join
+    _done_payments dp
+  on
+    ps.filled_sa_amplitude_id = dp.filled_sa_amplitude_id
+  and
+    (dp.event_time > ps.event_time and date_diff(dp.event_time, ps.event_time, minute) < payment_started_done_payment_atributiuon_window)
+  where
+    po.hypo_id is not null
+  order by
+    push_opened_date
+)
+
+select
+  platform,
+  city,
+  filled_sa_amplitude_id,
+  user_id,
+  ma_device_id,
+  push_opened_date,
+  push_id,
+  hypo_id,
+  push_title,
+case
+  when push_open_datetime is not null then 1
+  else 0
+end as push_opened,
+case
+  when ma_session_started_datetime is not null then 1
+  else 0
+end as ma_session_started,
+case
+  when product_added_datetime is not null then 1
+  else 0
+end as product_added,
+case
+  when payment_started_datetime is not null then 1
+  else 0
+end as payment_started,
+case
+  when done_payment_datetime is not null then 1
+  else 0
+end as done_payment
+from
+  _funnel_base

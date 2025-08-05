@@ -46,4 +46,11 @@ declare({
     name: "EVENTS_415371",
   });
 
+declare({
+    database: "ngrow-445912",
+    schema: "raw",
+    name: "raw_ngrow__push_notification_postbacks",
+  });
+
+
   

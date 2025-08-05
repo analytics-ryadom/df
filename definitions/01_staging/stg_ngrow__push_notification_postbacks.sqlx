@@ -1,0 +1,51 @@
+config {
+  type: 'incremental',
+  description: 'Staging table with ngrow push postbacks',
+  schema: 'staging',
+  tags: ['ngrow', 'staging', 'push_performance'],
+  name: 'stg_ngrow__push_notification_postbacks',
+  bigquery: {
+    partitionBy: 'timestamp_trunc(push_sent_timestamp, day)',
+    updatePartitionFilter:
+        'push_sent_timestamp >= timestamp_sub(current_timestamp(), interval 2 day)',
+    clusterBy: ['push_id', 'hypo_id']
+  },
+  assertions: {
+    nonNull: ['hypo_id', 'push_id', 'push_sent_timestamp', 'miniapp_amplitude_device_id'],
+  },
+}
+
+pre_operations {
+  declare timestamp_checkpoint timestamp; 
+
+  set timestamp_checkpoint = (
+    ${when(incremental(),
+    `select timestamp_sub(timestamp_trunc(
+      coalesce(
+        max(push_sent_timestamp),
+        current_timestamp()
+      ), day), interval 1 day) 
+    from ${self()} 
+    limit 1`,
+    `timestamp("2025-08-01")`)
+    }
+  );
+
+  ${when(incremental(),
+      `delete from ${self()} where date(push_sent_timestamp) >= date(timestamp_checkpoint)`
+      )}
+}
+
+select
+    `timestamp`         as push_sent_timestamp,
+    date(`timestamp`)   as push_sent_date,
+    did                 as miniapp_amplitude_device_id,
+    push_id,
+    hypo_id,
+    status,
+    cause,
+    holdout
+from
+    ${ref('raw_ngrow__push_notification_postbacks')}
+where
+    `timestamp` >= timestamp_checkpoint

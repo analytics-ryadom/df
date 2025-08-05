@@ -1,0 +1,85 @@
+config {
+  type: 'incremental',
+  description: 'Mart for Ngrow push performance',
+  schema: 'mart',
+  tags: ['amplitude', 'push_performance', 'mart', 'ngrow'],
+  name: 'mart__push_performance',
+  bigquery: {
+    partitionBy: 'push_sent_date',
+    updatePartitionFilter: 'push_sent_date >= date_sub(current_date(), interval 2 day)',
+    clusterBy: ['push_id', 'push_sent_date', 'hypo_id']
+  },
+  assertions: {
+    nonNull: ['push_sent_date', 'push_id', 'hypo_id']
+  }
+}
+
+pre_operations {
+  declare date_checkpoint date; 
+  set date_checkpoint = (
+    ${when(incremental(),
+    `select date_sub(max(push_sent_date), interval 2 day) 
+        from ${self()} 
+        limit 1`,
+    `date("2025-08-01")`)
+    }
+  );
+  
+  ${when(incremental(),
+      `delete from ${self()} where push_sent_date >= date_checkpoint`
+      )}
+}
+
+with _push_sent_pre_agg as (
+  select
+    push_sent_date,
+    push_id,
+    hypo_id,
+    count(distinct miniapp_amplitude_device_id) as push_sent_ttl
+  from
+    ${ref('stg_ngrow__push_notification_postbacks')}
+  where
+    push_sent_date >= date_checkpoint
+  group by
+    1,2,3
+),
+
+_push_funnel_aggrefated as (
+  select
+    platform,
+    push_opened_date,
+    push_id,
+    hypo_id,
+    push_title,
+    sum(push_opened) as push_opened_ttl,
+    sum(ma_session_started) as ma_session_started_ttl,
+    sum(product_added) as product_added_ttl,
+    sum(payment_started) as payment_started_ttl,
+    sum(done_payment) as done_payment_ttl
+  from
+    ${ref('int_amplitude__push_performance_funnel')}
+  where
+    push_opened_date >= date_checkpoint
+  group by
+    1,2,3,4,5
+)
+
+select
+  push_sent_date,
+  spa.push_id,
+  spa.hypo_id,
+  push_title,
+  push_sent_ttl,
+  push_opened_ttl,
+  ma_session_started_ttl,
+  product_added_ttl,
+  payment_started_ttl,
+  done_payment_ttl
+from
+  _push_sent_pre_agg spa
+left join
+  _push_funnel_aggrefated pfa
+on
+  spa.push_sent_date = pfa.push_opened_date
+and
+  spa.hypo_id = pfa.hypo_id
