@@ -157,7 +157,7 @@ with
     where
       date(event_time) >= date(timestamp_checkpoint)
     and
-      sa_session_id is not null and sa_session_id != '-1'
+      (sa_session_id is not null and sa_session_id != '-1')
   ),
 
   session_filled as (
