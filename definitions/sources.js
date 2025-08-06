@@ -52,5 +52,11 @@ declare({
     name: "raw_ngrow__push_notification_postbacks",
   });
 
+declare({
+    database: "ngrow-445912",
+    schema: "raw",
+    name: "raw_ngrow__push_creatives_content",
+  });
+
 
   
