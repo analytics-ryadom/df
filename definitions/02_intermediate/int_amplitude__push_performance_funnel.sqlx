@@ -32,9 +32,9 @@ pre_operations {
           select date_sub(max(push_opened_date), interval 2 day) 
           from ${self()} 
         ), 
-        "2025-08-01"
+        date("2025-08-01")
       )`,
-      "2025-08-01")
+      `date("2025-08-01")`)
       }
   );
   
@@ -203,25 +203,37 @@ select
   push_id,
   hypo_id,
   push_title,
-case
-  when push_open_datetime is not null then 1
-  else 0
-end as push_opened,
-case
-  when ma_session_started_datetime is not null then 1
-  else 0
-end as ma_session_started,
-case
-  when product_added_datetime is not null then 1
-  else 0
-end as product_added,
-case
-  when payment_started_datetime is not null then 1
-  else 0
-end as payment_started,
-case
-  when done_payment_datetime is not null then 1
-  else 0
-end as done_payment
+max(
+    case
+      when push_open_datetime is not null then 1
+      else 0
+    end
+  ) as push_opened,
+max(  
+    case
+      when ma_session_started_datetime is not null then 1
+      else 0
+    end
+) as ma_session_started,
+max(
+    case
+      when product_added_datetime is not null then 1
+      else 0
+    end
+) as product_added,
+max(
+    case
+      when payment_started_datetime is not null then 1
+      else 0
+    end
+) as payment_started,
+max(
+    case
+      when done_payment_datetime is not null then 1
+      else 0
+    end
+) as done_payment
 from
   _funnel_base
+group by
+  1,2,3,4,5,6,7,8,9
