@@ -66,6 +66,7 @@ _push_funnel_aggrefated as (
 
 select
     push_sent_date,
+    platform,
     spa.push_id,
     spa.hypo_id,
     pfa.push_title as parsed_push_title,

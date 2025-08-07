@@ -133,8 +133,7 @@ _done_payments as (
     event_time,
     filled_sa_amplitude_id,
     user_id,
-    sa_session_id,
-    uuid
+    sa_session_id
   from
     ${ref('int_amplitude__combined_events')}
   where
