@@ -95,8 +95,7 @@ _product_additions as (
     event_time,
     filled_sa_amplitude_id,
     user_id,
-    sa_session_id,
-    uuid
+    sa_session_id
   from
     ${ref('int_amplitude__combined_events')}
   where
@@ -115,7 +114,6 @@ _payment_starts as (
     filled_sa_amplitude_id,
     user_id,
     sa_session_id,
-    uuid
   from
     ${ref('int_amplitude__combined_events')}
   where
@@ -133,7 +131,8 @@ _done_payments as (
     event_time,
     filled_sa_amplitude_id,
     user_id,
-    sa_session_id
+    sa_session_id,
+    safe_cast(json_value(ma_event_properties, '$.preorderId') as int64) as preorder_id
   from
     ${ref('int_amplitude__combined_events')}
   where
@@ -143,6 +142,25 @@ _done_payments as (
 
 )
 ,
+
+_done_payments_with_price as (
+  select
+      pd.event_source,
+      pd.uuid,
+      pd.event_type,
+      pd.event_time,
+      pd.filled_sa_amplitude_id,
+      pd.user_id,
+      ol.id           as order_id,
+      ol.price / 100  as order_price,
+      pd.sa_session_id
+    from
+      _done_payments pd
+    left join
+      ${ref('stg_lavka__orders_lavka')} ol
+    on
+      pd.preorder_id = ol.preorder_id
+),
 
 _funnel_base as (
   select
@@ -155,11 +173,13 @@ _funnel_base as (
     po.push_id,
     po.hypo_id,
     po.push_title,
-    po.event_time as push_open_datetime,
-    ss.event_time as ma_session_started_datetime,
-    pa.event_time as product_added_datetime,
-    ps.event_time as payment_started_datetime,
-    dp.event_time as done_payment_datetime
+    dp.order_id,
+    po.event_time       as push_open_datetime,
+    ss.event_time       as ma_session_started_datetime,
+    pa.event_time       as product_added_datetime,
+    ps.event_time       as payment_started_datetime,
+    dp.event_time       as done_payment_datetime,
+    dp.order_price      as order_price_sum
   from
     _push_opens po
   left join
@@ -181,7 +201,7 @@ _funnel_base as (
   and
     (ps.event_time > pa.event_time and date_diff(ps.event_time, pa.event_time, minute) < product_added_payment_started_atributiuon_window)
   left join
-    _done_payments dp
+    _done_payments_with_price dp
   on
     ps.filled_sa_amplitude_id = dp.filled_sa_amplitude_id
   and
@@ -202,37 +222,39 @@ select
   push_id,
   hypo_id,
   push_title,
-max(
-    case
-      when push_open_datetime is not null then 1
-      else 0
-    end
-  ) as push_opened,
-max(  
-    case
-      when ma_session_started_datetime is not null then 1
-      else 0
-    end
-) as ma_session_started,
-max(
-    case
-      when product_added_datetime is not null then 1
-      else 0
-    end
-) as product_added,
-max(
-    case
-      when payment_started_datetime is not null then 1
-      else 0
-    end
-) as payment_started,
-max(
-    case
-      when done_payment_datetime is not null then 1
-      else 0
-    end
-) as done_payment
+  order_id,
+  max(
+      case
+        when push_open_datetime is not null then 1
+        else 0
+      end
+    ) as push_opened,
+  max(  
+      case
+        when ma_session_started_datetime is not null then 1
+        else 0
+      end
+  ) as ma_session_started,
+  max(
+      case
+        when product_added_datetime is not null then 1
+        else 0
+      end
+  ) as product_added,
+  max(
+      case
+        when payment_started_datetime is not null then 1
+        else 0
+      end
+  ) as payment_started,
+  max(
+      case
+        when done_payment_datetime is not null then 1
+        else 0
+      end
+  ) as done_payment,
+  max(order_price_sum) as sum_of_order_prices
 from
   _funnel_base
 group by
-  1,2,3,4,5,6,7,8,9
+  1,2,3,4,5,6,7,8,9,10
