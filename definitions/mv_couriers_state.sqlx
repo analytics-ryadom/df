@@ -214,5 +214,3 @@ _prep as (
 select *
 from _prep
 
--- comment fom dev_1
--- comment 2 fom dev
