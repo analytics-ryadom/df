@@ -53,12 +53,6 @@ declare({
   });
 
 declare({
-    database: "ngrow-445912",
-    schema: "raw",
-    name: "raw_ngrow__push_creatives_content",
-  });
-
-declare({
     database: "organic-reef-315010",
     schema: "snp",
     name: "orders_lavka",

@@ -66,36 +66,38 @@ _push_funnel_aggrefated as (
 )
 
 select
-    push_sent_date,
-    platform,
-    spa.push_id,
-    spa.hypo_id,
-    pfa.push_title as parsed_push_title,
-    cc.push_title,
-    cc.push_body,
-    cc.campaign_is_active,
-    cc.campaign_start_date,
-    cc.campaign_end_date,
-    push_sent_ttl,
-    push_opened_ttl,
-    ma_session_started_ttl,
-    product_added_ttl,
-    payment_started_ttl,
-    done_payment_ttl,
-    sum_of_order_prices_ttl
+  spa.push_sent_date,
+  platform,
+  spa.push_id,
+  spa.hypo_id,
+  pfa.push_title as parsed_push_title,
+  cc.push_title,
+  cc.push_body,
+  cc.campaign_is_active,
+  cc.campaign_start_date,
+  cc.campaign_end_date,
+  push_sent_ttl,
+  push_opened_ttl,
+  ma_session_started_ttl,
+  product_added_ttl,
+  payment_started_ttl,
+  done_payment_ttl,
+  sum_of_order_prices_ttl
 from
-    _push_sent_pre_agg spa
+  _push_sent_pre_agg spa
 left join
-    _push_funnel_aggrefated pfa
+  _push_funnel_aggrefated pfa
 on
-    spa.push_sent_date = pfa.push_opened_date
+  spa.push_sent_date = pfa.push_opened_date
 and
-    spa.hypo_id = pfa.hypo_id
+  spa.hypo_id = pfa.hypo_id
 left join
-    ${ref('stg_ngrow__push_creatives_content')} cc
+  ${ref('stg_ngrow__push_creatives_content')} cc
 on
-    spa.push_id = cc.push_id
+  spa.push_id = cc.push_id
 and
-    spa.hypo_id = cc.hypo_id
+  spa.hypo_id = cc.hypo_id
+and
+  spa.push_sent_date = cc.push_sent_date
 where
   push_opened_date < current_date()
