@@ -32,7 +32,7 @@ pre_operations {
           select date_sub(max(push_opened_date), interval 2 day) 
           from ${self()} 
         ), 
-        date("2025-08-01")
+        date("2025-08-02")
       )`,
       `date("2025-08-01")`)
       }
