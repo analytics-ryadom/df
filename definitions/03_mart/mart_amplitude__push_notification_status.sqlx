@@ -27,7 +27,7 @@ pre_operations {
     `select date_sub(max(event_date), interval 1 day) 
         from ${self()} 
         limit 1`,
-    `date("2025-07-09")`)
+    `date("2025-08-01")`)
     }
   );
   

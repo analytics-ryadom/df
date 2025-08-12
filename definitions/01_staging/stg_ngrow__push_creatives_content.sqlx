@@ -1,0 +1,34 @@
+config {
+  type: 'view',
+  description: 'Staging view with ngrow push content - real-time reflection of raw data',
+  schema: 'staging',
+  tags: ['ngrow', 'staging', 'push_performance', 'view'],
+  name:'stg_ngrow__push_creatives_content',
+  assertions: {
+    nonNull: ['hypo_id', 'push_id']
+  }
+}
+
+select
+    current_timestamp()             as _view_accessed_at,
+    `timestamp`                     as push_sent_datetime,
+    date(`timestamp`)               as push_sent_date,
+    push_id,
+    hypo_id,
+    locale,
+    app_id,
+    link                            as push_deeplink,
+    silent                          as is_silent_push,
+    `image`                         as image_link,
+    icon,
+    icon_color,
+    title                           as push_title,
+    body                            as push_body,
+    is_active                       as campaign_is_active,
+    start_date                      as campaign_start_date,
+    end_date                        as campaign_end_date
+from
+    ${ref('raw_ngrow__push_notification_postbacks')}
+where
+    push_id is not null
+    and hypo_id is not null

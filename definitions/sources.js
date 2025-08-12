@@ -52,5 +52,9 @@ declare({
     name: "raw_ngrow__push_notification_postbacks",
   });
 
-
+declare({
+    database: "organic-reef-315010",
+    schema: "snp",
+    name: "orders_lavka",
+  });
   
