@@ -30,8 +30,51 @@ const stg_lavka__warehouses = {
    updated_by: "Identifier of the user who last updated the warehouse record",
    uuid: "Universally unique identifier for the warehouse",
    launch_id: "Identifier for the launch associated with the warehouse"
-  }
+  };
+
+const stg_lavka__order_items = {
+    created_at: "Timestamp when the item was added to the order",
+    feature_id: "Feature ID (e.g., variation like flavor/type)",
+    id: "Unique item record ID",
+    is_available: "Whether the item was available during picking",
+    mark: "Product mark (e.g., batch or date label)",
+    order_id: "Order ID this item belongs to",
+    original_price: "Original price of the item before discount",
+    price: "Final price of the item after discounts",
+    product_id: "Product ID",
+    reason: "Reason for item rejection or return",
+    reason_type: "Reason type",
+    refund_id: "Refund ID, if a refund was processed",
+    return_request_id: "Return request ID",
+    scanned_at: "Timestamp when the item was scanned during picking",
+    status: "Item status",
+    supplier_price: "Supplier price",
+    supplier_product_id: "Supplier-side product ID",
+    launch_id: "Launch or version ID",
+    promo_source: "Promotion source"
+
+};
+
+const stg_lavka__additional_order_items = {
+    created_at: "Timestamp when the item was added to the order",
+    high_delivery_price: "This order was delivered with high delivery price",
+    id: "Unique item record ID",
+    order_id: "Order ID this item belongs to",
+    original_price: "Original price of the item before discount",
+    price: "Final price of the item after discounts",
+    product_id: "Product ID",
+    reason: "Reason for item rejection or return",
+    reason_type: "Reason type",
+    refund_id: "Refund ID, if a refund was processed",
+    status: "Item status",
+    launch_id: "Launch or version ID"
+
+}
+
+
 
 module.exports = {
-  stg_lavka__warehouses
+  stg_lavka__warehouses,
+  stg_lavka__order_items,
+  stg_lavka__additional_order_items
 };
