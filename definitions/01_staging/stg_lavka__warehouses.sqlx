@@ -1,0 +1,45 @@
+config {
+  type: 'view',
+  description: 'The table wich refer this view contane the warehouses info',
+  schema: 'staging',
+  columns: table_docs.stg_lavka__warehouses,
+  tags: ['lavka', 'staging', 'warehouse', 'view'],
+  name:'stg_lavka__warehouses',
+  assertions: {
+    nonNull: ['id']
+  }
+}
+
+select
+    additional_phone_number,
+    additional_properties,
+    address,
+    cashbox_unique_number,
+    city_id,
+    closes_at,
+    created_at,
+    created_by,
+    delivery_time,
+    delivery_zone,
+    delivery_zone_geo,
+    delivery_zone_multi_geo,
+    detailed_address,
+    force_min_amount,
+    geo_wkt,
+    has_internship,
+    id,
+    is_active,
+    is_functioning,
+    lat,
+    long,
+    min_amount,
+    name,
+    opens_at,
+    phone_number,
+    products_quantity,
+    updated_at,
+    updated_by,
+    uuid,
+    launch_id
+from
+    ${ref('warehouses')}
