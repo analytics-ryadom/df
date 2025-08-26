@@ -57,4 +57,10 @@ declare({
     schema: "snp",
     name: "orders_lavka",
   });
+
+declare({
+    database: "organic-reef-315010",
+    schema: "analytics",
+    name: "rfm_28d_score",
+  });
   
