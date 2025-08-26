@@ -1,0 +1,37 @@
+config {
+  type: 'view',
+  description: 'The table of courier motivations',
+  schema: 'staging',
+  columns: table_docs.stg_courier__courier_motivations,
+  tags: ['courier', 'staging', 'motivations', 'view'],
+  name:'stg_courier__courier_motivations',
+  assertions: {
+    nonNull: ['id', 'courier_id', 'motivation_program_id'],
+    uniqueKey: ['id']
+  }
+}
+
+
+select
+    amount,
+    courier_id,
+    created_at,
+    employee_id,
+    employee_rate_id,
+    got_bonus,
+    got_bonus_turned_on,
+    id,
+    is_intern,
+    motivation_program_id,
+    order_id,
+    paid_amount,
+    polygon_id,
+    shift_id,
+    surge_bonus,
+    surge_coefficient,
+    launch_id,
+    rider_coefficient,
+    polygon_data,
+    paid_rider_coefficient
+from
+    ${ref('courier_motivations')}
