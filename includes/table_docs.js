@@ -86,8 +86,8 @@ const stg_lavka__additional_products = {
 const stg_lavka__preorders = {
   address_comment: "Address comment",
   created_at: "Preorder creation timestamp",
-  customer_last_name: "Customer’s last name",
-  customer_name: "Customer’s first name",
+  customer_last_name: "Customers last name",
+  customer_name: "Customers first name",
   customer_phone_number: "Customer phone number",
   delivery_type: "Delivery type",
   device_id: "Device ID from which the preorder was made",
@@ -110,7 +110,7 @@ const stg_lavka__preorders = {
   warehouse_id: "Warehouse (dark store) ID",
   launch_id: "Launch or version ID",
   free_delivery: "Indicates free delivery",
-  customer_address_id: "ID of customer’s saved address",
+  customer_address_id: "ID of customers saved address",
   comment: "General preorder comment",
   payment_id: "Payment ID in external payment system",
   provider_user_id: "External provider user ID"
@@ -165,6 +165,63 @@ const stg_courier__motivation_programs = {
 
 };
 
+const stg_courier__orders = {
+    address: "Delivery address (usually without entrance or apartment)",
+    address_comment: "Comment on the delivery address",
+    auto_finish_at: "Time when the order will be auto-finished (e.g., by timeout)",
+    batch_id: "Batch ID (group of orders)",
+    building: "Building number",
+    cell: "Storage or delivery cell (if applicable)",
+    client_id: "Client ID in the system",
+    client_latitude: "Clients latitude (delivery point)",
+    client_longitude: "Clients longitude (delivery point)",
+    client_name: "Clients name",
+    client_phone: "Clients phone number",
+    code: "Order confirmation code",
+    comment_for_courier: "Comment for courier",
+    comment_for_picker: "Comment for picker",
+    courier_id: "Courier ID",
+    courier_motivation_amount: "Courier motivation amount",
+    courier_motivation_time: "Courier motivation time window",
+    created_at: "Order creation timestamp",
+    delivered_time: "Actual delivery time",
+    delivery_time_prediction: "Predicted delivery time",
+    distance_to_warehouse: "Distance to warehouse (in meters)",
+    entrance: "Entrance",
+    flat: "Apartment number",
+    floor: "Floor",
+    full_address: "Full delivery address",
+    has_alcohol: "Whether the order contains alcohol",
+    has_coffee: "Whether the order contains coffee",
+    has_tobacco: "Whether the order contains tobacco",
+    id: "Unique order ID",
+    is_distant: "Is the address considered distant",
+    leave_at_the_door: "Leave at the door",
+    less_packages: "Use less packaging",
+    min_amount: "Minimum order amount",
+    order_id: "External system order ID",
+    order_items: "Order items (e.g., JSON string of product list)",
+    payment_method: "Payment method",
+    picker_assigned_at: "Picker assignment timestamp",
+    picker_id: "Picker ID",
+    price: "Total order price",
+    status: "Order status (e.g., “in picking”, “delivered”)",
+    status_updated_at: "Timestamp of last status update",
+    street_name: "Street name",
+    version: "Order version",
+    volume: "Order volume (in abstract units)",
+    warehouse_address: "Warehouse address",
+    warehouse_id: "Warehouse ID",
+    warehouse_latitude: "Warehouse latitude",
+    warehouse_longitude: "Warehouse longitude",
+    weight: "Order weight (in kg)",
+    launch_id: "Launch or configuration ID",
+    comment: "General order comment",
+    has_energy_drinks: "Whether the order contains energy drinks",
+    distance_to_warehouse_by_bicycle: "Bicycle distance to warehouse (in meters)"
+
+};
+
 /////////////////////////////// Lavka_surge ///////////////////////////////
 const stg_lavka_surge__surge_logs = {
     additional_data: "JSON contanes a surge decision data",
@@ -189,6 +246,7 @@ module.exports = {
   stg_lavka__preorders,
   stg_courier__courier_motivations,
   stg_courier__motivation_programs,
+  stg_courier__orders,
   stg_lavka_surge__surge_logs
 };
 
