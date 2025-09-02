@@ -234,7 +234,7 @@ with
     from
       session_filled
     where
-      date(event_time) <= current_date()
+      event_time <= current_timestamp()
   )
 
 select * except(rn) from pre_prepared where rn = 1
