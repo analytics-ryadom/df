@@ -43,6 +43,11 @@ with _base_data as (
     filled_sa_amplitude_id,
     ma_amplitude_id,
     case
+      when lower(json_value(ma_event_properties, '$.user_agent')) like '%/ios/%' then 'ios'
+      when lower(json_value(ma_event_properties, '$.user_agent')) like '%/android/%' then 'android'
+      else 'other'
+    end as platform,
+    case
       when json_extract_scalar(ma_event_properties, '$.status') like 'granted' then 'true'
       when json_extract_scalar(ma_event_properties, '$.status') like 'denied' then 'false'
       when json_extract_scalar(ma_event_properties, '$.status') like 'notDetermined' then 'unknown'
