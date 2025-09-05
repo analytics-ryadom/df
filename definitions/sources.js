@@ -106,6 +106,17 @@ declare({
     name: "preorders",
   });
 
+declare({
+    database: "organic-reef-315010",
+    schema: "snp",
+    name: "batches",
+  });
+
+declare({
+    database: "organic-reef-315010",
+    schema: "snp",
+    name: "courier_batch_history",
+  });
 
 
 

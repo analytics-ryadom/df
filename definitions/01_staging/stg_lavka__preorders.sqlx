@@ -22,7 +22,7 @@ select
     entrance,
     flat_number,
     floor,
-    hash,
+    `hash`,
     id,
     idempotency_key,
     lat,

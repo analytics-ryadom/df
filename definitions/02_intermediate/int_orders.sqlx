@@ -1,10 +1,22 @@
-
+config {
+  type: 'incremental',
+  description: 'Intermediate orders table ',
+  schema: 'intermediate',
+  tags: ['intermediate', 'orders'],
+  name: 'int_orders',
+  bigquery: {
+    partitionBy: 'timestamp_trunc(created_at, day)',
+    updatePartitionFilter: 'event_time >= timestamp_sub(current_timestamp(), interval 2 day)',
+    clusterBy: ['warehouse_id']
+  },
+  
+}
 
 pre_operations {
     DECLARE timestamp_checkpoint DEFAULT (
     ${when(incremental(),
     `SELECT timestamp(timestamp_sub(current_timestamp(), interval 3 day))`,
-    `SELECT timestamp("2020-06-01")`)}
+    `SELECT timestamp("2025-05-01")`)}
   )
   }
 
@@ -107,7 +119,7 @@ _motivation as (
 --     from ${ref('stg_lavka_surge__surge_logs')}
 --     -- where decision_made_at >= '{0}'
 --     where decision_made_at >= timestamp_checkpoint
-)
+-- )
 select  t1.order_id,
         t1.batch_id,
         t1.warehouse_id,
@@ -173,7 +185,8 @@ left join _order_items as t2
     on t1.order_id = t2.order_id
 left join _additional_order_items t22
     on t1.order_id = t22.order_id
-left join dds.order_statuses as t3
+-- left join dds.order_statuses as t3
+left join ${ref('int_order_statuses')} as t3
     on t1.order_id = t3.order_id
 left join _motivation as t4
     on t1.order_id = t4.order_id

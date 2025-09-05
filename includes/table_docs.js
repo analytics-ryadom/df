@@ -83,6 +83,49 @@ const stg_lavka__additional_products = {
 
 };
 
+const stg_lavka__orders_lavka = {
+    address_comment: "comments written by user to specify address details",
+    building: "building number",
+    cancel_reason: "reason of order cancellation",
+    code: "order code shown to user in an app",
+    comment: "user comment for order",
+    created_at: "order creation time",
+    customer_last_name: "last name of user",
+    customer_name: "first name of user",
+    customer_phone_number: "phone number of user",
+    delivery_type: "code of delivery type",
+    entrance: "entrance number for address",
+    flat_number: "flat number of address",
+    floor: "floor of address",
+    has_discount: "does order has discount",
+    id: "identificator of order",
+    idempotency_key: "idempotency_key",
+    is_fraud: "flag of antifraud service",
+    lat: "latitude of address",
+    leave_at_the_door: "flag to leave order at the door",
+    less_packages: "flag to use less packages for order",
+    long: "longitude for address",
+    paid_at: "payment time",
+    picker_id: "identificator of picker who collected order",
+    preorder_id: "identificator of preorder",
+    price: "price user paid for order multiplied by 100",
+    products: "goods in order",
+    promocode_id: "identificator of promocode",
+    reference: "reference to rahmet payments",
+    shelf: "shelf number where order has been placed after it was collected",
+    status: "status code of order",
+    street: "address",
+    street_name: "street name of address",
+    user_id: "identificator of user",
+    user_iin: "iin of user",
+    warehouse_id: "identificator of the warehouse where order has been placed",
+    launch_id: "identificator of launch",
+    free_delivery: "was delivery free",
+    payment_id: "uuid of indrive payments",
+    provider_user_id: "provider"
+
+};
+
 const stg_lavka__preorders = {
   address_comment: "Address comment",
   created_at: "Preorder creation timestamp",
@@ -222,6 +265,46 @@ const stg_courier__orders = {
 
 };
 
+const stg_courier__order_status_history = {
+    created_at: "Timestamp of the status change",
+    employee_id: "ID of the employee who changed the status (if applicable)",
+    id: "Unique history record ID",
+    idempotency_key: "Idempotency key to prevent duplicate status updates",
+    order_id: "Order ID the status change belongs to",
+    type: "New order status (e.g., created, order_received)",
+    version: "Version of the record or system where the status change occurred",
+    launch_id: "Launch or configuration ID under which the status change was recorded"
+
+};
+
+const stg_courier__batches = {
+    batch_type: "Type of batch",
+    created_at: "Timestamp when the batch was created",
+    delivery_type: "Delivery type",
+    id: "Unique batch ID",
+    latitude: "Latitude of the batch delivery location",
+    longitude: "Longitude of the batch delivery location",
+    max_quantity: "Maximum number of orders in the batch",
+    ready_time: "Time when the batch is fully ready for delivery",
+    status: "Current status of the batch",
+    updated_at: "Last time the batch record was updated",
+    version: "Version of the configuration or schema",
+    warehouse_id: "ID of the warehouse from which the batch is formed",
+    launch_id: "Launch/config ID associated with the batch"
+
+};
+
+const stg_courier__courier_batch_history = {
+    batch_id: "D of the batch (group of orders)",
+    created_at: "Timestamp when the batch history record was created",
+    employee_id: "Employee id",
+    id: "Unique ID of the history record",
+    type: "Type of action related to the batch (e.g., assigned, accepted, delivered)",
+    uuid: "Unique UUID identifier of the batch",
+    launch_id: "Launch ID or configuration version under which the batch was processed",
+    delivered_at: "Timestamp when the batch was delivered"    
+};
+
 /////////////////////////////// Lavka_surge ///////////////////////////////
 const stg_lavka_surge__surge_logs = {
     additional_data: "JSON contanes a surge decision data",
@@ -243,10 +326,14 @@ module.exports = {
   stg_lavka__order_items,
   stg_lavka__additional_order_items,
   stg_lavka__additional_products,
+  stg_lavka__orders_lavka,
   stg_lavka__preorders,
   stg_courier__courier_motivations,
   stg_courier__motivation_programs,
   stg_courier__orders,
+  stg_courier__order_status_history,
+  stg_courier__batches,
+  stg_courier__courier_batch_history,
   stg_lavka_surge__surge_logs
 };
 

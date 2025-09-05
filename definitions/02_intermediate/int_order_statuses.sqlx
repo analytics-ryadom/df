@@ -1,0 +1,120 @@
+config {
+  type: 'incremental',
+  description: 'Intermediate table include order statuses',
+  schema: 'intermediate',
+  tags: ['orders', 'intermediate'],
+  name: 'int_order_statuses',
+  bigquery: {
+    partitionBy: 'timestamp_trunc(created_at, day)',
+    updatePartitionFilter: 'event_time >= timestamp_sub(current_timestamp(), interval 2 day)',
+    clusterBy: ['order_id']
+  }, 
+}
+
+pre_operations {
+    DECLARE timestamp_checkpoint DEFAULT (
+    ${when(incremental(),
+    `SELECT timestamp(timestamp_sub(current_timestamp(), interval 3 day))`,
+    `SELECT timestamp("2020-05-01")`)}
+  )
+  }
+
+
+with _orders as (
+    select order_id,
+           batch_id,
+           picker_id,
+           courier_id,
+           count(*) over (partition by batch_id) as n,
+           ROW_NUMBER() over (partition by batch_id order by created_at) as batch_n
+    -- from snp.orders
+    from ${ref('stg_courier__orders')}
+    -- where created_at >= '{0}'
+    where created_at >= timestamp_checkpoint
+),
+_order_stat as (
+    select order_id,
+           min(created_at)                                               as created_at,
+           max(case when type = "order_received" then created_at end)           as order_received,
+           max(case when type = "picker_assigned" then created_at end)          as picker_assigned,
+           max(case when type = "picker_collecting" then created_at end)        as picker_collecting,
+           max(case when type = "picker_collected" then created_at end)         as picker_collected,
+           max(case when type = "order_ready_for_delivery" then created_at end) as order_ready_for_delivery,
+           max(case when type = "taken_by_courier" then created_at end)         as taken_by_courier,
+           max(case when type = "arrived_to_address" then created_at end)       as arrived_to_address,
+           max(case when type = "order_delivered" then created_at end)          as order_delivered,
+           max(case when type = "back_to_warehouse" then created_at end)        as back_to_warehouse,
+           max(case when type = "order_canceled"           then created_at end) as order_canceled,
+           -- если нет ключа идемпотентности, значит, "back_to_warehouse" проставлен автоматически
+           max(type = "back_to_warehouse" and idempotency_key is null)          as autofinish_flg
+    -- from snp.order_status_history
+    from ${ref('stg_courier__order_status_history')}
+    -- where created_at >= '{0}'
+    where created_at >= timestamp_checkpoint
+    group by 1
+),
+_batches as (
+    select o.order_id,
+           b.id,
+           case when coalesce(o.batch_n, 1) = 2 then
+               greatest(b.ready_time, ost.order_ready_for_delivery)
+           else b.ready_time end as ready_time
+    -- from snp.batches b
+    from ${ref('stg_courier__batches')} b
+        join _orders o on o.batch_id = b.id
+        join _order_stat ost on ost.order_id = o.order_id
+    -- where b.created_at >= '{0}'
+    where b.created_at >= timestamp_checkpoint
+),
+_batch_stat as (
+    select  o.order_id,
+            b.batch_id,
+            min(b.created_at) as courier_first_offer,
+            max(case when type = 20 then b.created_at end) as courier_last_offer
+    from _orders o
+        join _order_stat ost on ost.order_id = o.order_id
+        -- join `organic-reef-315010.snp.courier_batch_history` b
+        join ${ref('stg_courier__courier_batch_history')} b
+            on b.batch_id = o.batch_id
+                and b.created_at >= ost.order_ready_for_delivery
+    -- where b.created_at >= '{0}'
+    where b.created_at >= timestamp_checkpoint
+    group by 1, 2
+)
+select t1.order_id,
+       t1.batch_id,
+       if(n = 1, null, batch_n) as batch_n,
+       t1.courier_id,
+       t1.picker_id,
+       t2.created_at,
+       t3.ready_time as wait_batching,
+       order_received,
+       picker_assigned,
+       picker_collecting,
+       picker_collected,
+       order_ready_for_delivery,
+       -- иногда один из заказов батчинга отменяют на этапе сборки
+       -- тогда следующие три поля тоже должны быть null, но они будут заполнены потому что есть второй не отмененный заказ
+       -- делаем проверку, если предыдущий статус не null значит заполняем поля, если null то оставляем null
+       if(
+           order_ready_for_delivery is null, null,
+           max(order_ready_for_delivery)
+               over (partition by t1.batch_id order by t2.created_at desc)
+           )as last_order_ready_for_delivery,
+       if(order_ready_for_delivery is null, null, courier_first_offer) as courier_first_offer,
+       if(order_ready_for_delivery is null, null, courier_last_offer) as courier_last_offer,
+       taken_by_courier,
+       arrived_to_address,
+       order_delivered,
+       back_to_warehouse,
+       order_canceled,
+       autofinish_flg
+from _orders as t1
+join _order_stat as t2
+    on t1.order_id = t2.order_id
+join _batches as t3
+    on t1.batch_id = t3.id
+    and t1.order_id = t3.order_id
+left join _batch_stat as t4
+    on t1.batch_id = t4.batch_id
+    and t1.order_id = t4.order_id

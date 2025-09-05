@@ -1,0 +1,31 @@
+config {
+  type: 'view',
+  description: 'The table of order batches',
+  schema: 'staging',
+  columns: table_docs.stg_courier__batches,
+  tags: ['courier', 'staging', 'orders', 'batches','view'],
+  name:'stg_courier__batches',
+  assertions: {
+    nonNull: ['id'],
+    uniqueKey: ['id']
+  }
+}
+
+
+select
+  batch_type,
+  created_at,
+  delivery_type,
+  id,
+  latitude,
+  longitude,
+  max_quantity,
+  ready_time,
+  `status`,
+  updated_at,
+  `version`,
+  warehouse_id,
+  launch_id
+    
+from
+    ${ref('batches')}

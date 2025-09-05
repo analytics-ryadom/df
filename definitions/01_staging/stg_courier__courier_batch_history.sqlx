@@ -1,0 +1,26 @@
+config {
+  type: 'view',
+  description: 'The table of courier batch history',
+  schema: 'staging',
+  columns: table_docs.stg_courier__courier_batch_history,
+  tags: ['courier', 'staging', 'orders', 'batches', 'view', 'history'],
+  name:'stg_courier__courier_batch_history',
+  assertions: {
+    nonNull: ['id'],
+    uniqueKey: ['id']
+  }
+}
+
+
+select
+  batch_id,
+  created_at,
+  employee_id,
+  id,
+  `type`,
+  uuid,
+  launch_id,
+  delivered_at
+    
+from
+    ${ref('courier_batch_history')}
