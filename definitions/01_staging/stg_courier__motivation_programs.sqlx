@@ -1,0 +1,35 @@
+config {
+  type: 'view',
+  description: 'The table of motivation programs',
+  schema: 'staging',
+  columns: table_docs.stg_courier__motivation_programs,
+  tags: ['courier', 'staging', 'motivations', 'view'],
+  name:'stg_courier__motivation_programs',
+  assertions: {
+    nonNull: ['id'],
+    uniqueKey: ['id']
+  }
+}
+
+
+select
+    amount,
+    bonus_type,
+    created_at,
+    created_by,
+    employee_rate_id,
+    from_eta,
+    from_radius,
+    id,
+    is_active,
+    rider_x_coefficient,
+    surge_bonuses,
+    time,
+    to_eta,
+    to_radius,
+    updated_at,
+    updated_by,
+    warehouse_id,
+    launch_id
+from
+    ${ref('motivation_programs')}

@@ -1,0 +1,36 @@
+config {
+  type: 'view',
+  description: 'Contane an order items info',
+  schema: 'staging',
+  columns: table_docs.stg_lavka__order_items,
+  tags: ['lavka', 'staging', 'order', 'view'],
+  name:'stg_lavka__order_items',
+  assertions: {
+    nonNull: ['id', 'created_at'],
+    uniqueKey: ['id']
+  }
+}
+
+
+select
+    created_at,
+    feature_id,
+    id,
+    is_available,
+    mark,
+    order_id,
+    original_price,
+    price,
+    product_id,
+    reason,
+    reason_type,
+    refund_id,
+    return_request_id,
+    scanned_at,
+    status,
+    supplier_price,
+    supplier_product_id,
+    launch_id,
+    promo_source
+from
+    ${ref('order_items')}

@@ -1,7 +1,8 @@
 config {
   type: 'view',
-  description: '!!! Mocking Staging for orders_lavka',
+  description: 'Staging for orders_lavka',
   schema: 'staging',
+  columns: table_docs.stg_lavka__orders_lavka,
   tags: ['lavka', 'staging', 'push_performance', 'view'],
   name:'stg_lavka__orders_lavka',
   assertions: {
@@ -11,10 +12,44 @@ config {
 }
 
 select
+    address_comment,
+    building,
+    cancel_reason,
+    code,
+    comment,
+    created_at,
+    customer_last_name,
+    customer_name,
+    customer_phone_number,
+    delivery_type,
+    entrance,
+    flat_number,
+    floor,
+    has_discount,
     id,
+    idempotency_key,
+    is_fraud,
+    lat,
+    leave_at_the_door,
+    less_packages,
+    long,
+    paid_at,
+    picker_id,
     preorder_id,
-    price
+    price,
+    products,
+    promocode_id,
+    reference,
+    shelf,
+    status,
+    street,
+    street_name,
+    user_id,
+    user_iin,
+    warehouse_id,
+    launch_id,
+    free_delivery,
+    payment_id,
+    provider_user_id
 from
     ${ref('orders_lavka')}
-where
-    date(created_at) > '2025-08-01'

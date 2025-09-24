@@ -1,0 +1,22 @@
+config {
+  type: 'view',
+  description: 'Staging view with indrive transactions - loaded from aws S3',
+  schema: 'staging',
+  columns: {
+   id: "A unique identifier for each row",
+   raw_data: "The data of transaction in the JSON format", 
+   created_at: "The date this row signed up" 
+  },
+  tags: ['aws', 'staging', 'transactions', 'view'],
+  name:'stg_aws_indrive__financial_metrics-transactions',
+  assertions: {
+    nonNull: ['id', 'raw_data']
+  }
+}
+
+select
+    id,
+    raw_data,
+    created_at
+from
+    ${ref('financial_metrics-transactions')}

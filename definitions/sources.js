@@ -60,7 +60,68 @@ declare({
 
 declare({
     database: "organic-reef-315010",
+    schema: "snp",
+    name: "warehouses",
+  });
+
+declare({
+    database: "organic-reef-315010",
+    schema: "snp",
+    name: "order_items",
+  });
+
+declare({
+    database: "organic-reef-315010",
+    schema: "snp",
+    name: "additional_order_items",
+  });
+
+declare({
+    database: "organic-reef-315010",
+    schema: "snp",
+    name: "additional_products",
+  });
+
+declare({
+    database: "organic-reef-315010",
+    schema: "snp",
+    name: "courier_motivations",
+  });
+
+declare({
+    database: "organic-reef-315010",
+    schema: "snp",
+    name: "motivation_programs",
+  });
+
+declare({
+    database: "organic-reef-315010",
+    schema: "snp",
+    name: "surge_logs",
+  });
+
+declare({
+    database: "organic-reef-315010",
+    schema: "snp",
+    name: "preorders",
+  });
+
+declare({
+    database: "organic-reef-315010",
+    schema: "snp",
+    name: "batches",
+  });
+
+declare({
+    database: "organic-reef-315010",
+    schema: "snp",
+    name: "courier_batch_history",
+  });
+
+declare({
+    database: "organic-reef-315010",
     schema: "analytics",
     name: "rfm_28d_score",
   });
+
   

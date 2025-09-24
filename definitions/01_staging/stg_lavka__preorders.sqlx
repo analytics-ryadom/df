@@ -1,0 +1,46 @@
+config {
+    type: 'view',
+    description: 'Tables of preorders',
+    schema: 'staging',
+    columns: table_docs.stg_lavka__preorders,
+    tags: ['lavka', 'staging', 'orders', 'preorders', 'view'],
+    name:'stg_lavka__preorders',
+    assertions: {
+        nonNull: ['id', 'warehouse_id'],
+        uniqueKey: ['id']
+  }
+}
+
+select
+    address_comment,
+    created_at,
+    customer_last_name,
+    customer_name,
+    customer_phone_number,
+    delivery_type,
+    device_id,
+    entrance,
+    flat_number,
+    floor,
+    `hash`,
+    id,
+    idempotency_key,
+    lat,
+    leave_at_the_door,
+    less_packages,
+    long,
+    paid_at,
+    payment_deeplink,
+    promocode_id,
+    street,
+    user_id,
+    user_iin,
+    warehouse_id,
+    launch_id,
+    free_delivery,
+    customer_address_id,
+    comment,
+    payment_id,
+    provider_user_id
+from
+    ${ref('preorders')}

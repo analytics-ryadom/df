@@ -1,0 +1,26 @@
+
+config {
+  type: 'view',
+  description: 'The table of additional products',
+  schema: 'staging',
+  columns: table_docs.stg_lavka__additional_products,
+  tags: ['lavka', 'staging', 'product', 'view'],
+  name:'stg_lavka__additional_products',
+  assertions: {
+    nonNull: ['id'],
+    uniqueKey: ['uuid', 'id']
+  }
+}
+
+
+select
+    created_at,
+    id,
+    is_active,
+    name,
+    type,
+    updated_at,
+    uuid,
+    launch_id
+from
+    ${ref('additional_products')}

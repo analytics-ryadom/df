@@ -1,0 +1,29 @@
+config {
+  type: 'view',
+  description: 'Contane an additional order items info',
+  schema: 'staging',
+  columns: table_docs.stg_lavka__additional_order_items,
+  tags: ['lavka', 'staging', 'order', 'view'],
+  name:'stg_lavka__additional_order_items',
+  assertions: {
+    nonNull: ['id', 'order_id'],
+    uniqueKey: ['id']
+  }
+}
+
+
+select
+    created_at,
+    high_delivery_price,
+    id,
+    order_id,
+    original_price,
+    price,
+    product_id,
+    reason,
+    reason_type,
+    refund_id,
+    status,
+    launch_id
+from
+    ${ref('additional_order_items')}

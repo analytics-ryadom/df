@@ -2,6 +2,7 @@ config {
   type: "incremental",
   schema: 'snp',
   name: 'indrive_transactions',
+  tags: ['aws', 'indrive', 'transactions', 'incremental'],
   bigquery: {
     partitionBy: "timestamp_trunc(created_at, day)",
     updatePartitionFilter:
@@ -50,7 +51,7 @@ select
 -- Nested JSON field in 'jdoc'
 JSON_VALUE(JSON_VALUE(raw_data, '$.jdoc'), '$.with_saved_instrument') AS with_saved_instrument,
 JSON_VALUE(JSON_VALUE(raw_data, '$.jdoc'), '$.pay_date') AS pay_date
-from ${ref("financial_metrics-transactions")} 
+from ${ref('stg_aws_indrive__financial_metrics-transactions')} 
 where created_at > timestamp_checkpoint
 
 

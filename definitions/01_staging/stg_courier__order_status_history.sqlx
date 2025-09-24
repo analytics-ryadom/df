@@ -1,0 +1,25 @@
+config {
+  type: 'view',
+  description: 'The table of courier motivations',
+  schema: 'staging',
+  columns: table_docs.stg_courier__order_status_history,
+  tags: ['courier', 'staging', 'orders', 'view'],
+  name:'stg_courier__order_status_history',
+  assertions: {
+    nonNull: ['id', 'order_id'],
+    uniqueKey: ['id']
+  }
+}
+
+
+select
+  created_at,
+  employee_id,
+  id,
+  idempotency_key,
+  order_id,
+  `type`,
+  version,
+  launch_id   
+from
+    ${ref('order_status_history')}

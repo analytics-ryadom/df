@@ -1,0 +1,29 @@
+config {
+  type: 'view',
+  description: 'The table contanes logs of surge decisions',
+  schema: 'staging',
+  columns: table_docs.stg_lavka_surge__surge_logs,
+  tags: ['surge', 'staging', 'view'],
+  name:'stg_lavka_surge__surge_logs',
+  assertions: {
+    nonNull: ['id', 'decision', 'decision_made_at', 'next_decision_at'],
+    uniqueKey: ['id']
+  }
+}
+
+
+select
+   additional_data,
+   decision,
+   decision_made_at,
+   id,
+   min_amount,
+   min_amount_enabled,
+   next_decision_at,
+   request_uuid,
+   test_mode,
+   warehouse_id,
+   launch_id 
+    
+from
+    ${ref('surge_logs')}

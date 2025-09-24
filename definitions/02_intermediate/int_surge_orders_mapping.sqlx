@@ -1,0 +1,67 @@
+
+config {
+  type: 'incremental',
+  description: 'Intermediate table mapping surge logs and orders',
+  schema: 'intermediate',
+  tags: ['surge', 'intermediate', 'orders'],
+  name: 'int_surge_orders_mapping',
+  bigquery: {
+    partitionBy: 'timestamp_trunc(po_created_at, day)',
+    updatePartitionFilter: 'event_time >= timestamp_sub(current_timestamp(), interval 2 day)',
+    clusterBy: ['warehouse_id']
+  },
+  
+}
+
+pre_operations {
+    DECLARE timestamp_checkpoint DEFAULT (
+    ${when(incremental(),
+    `SELECT timestamp(timestamp_sub(current_timestamp(), interval 3 day))`,
+    `SELECT timestamp("2025-07-01")`)}
+  )
+  }
+
+with 
+_orders_lavka as (
+    select  
+            po.id as preorder_id,
+            po.created_at as po_created_at,
+            po.warehouse_id as warehouse_id,
+            ord.id as order_id,
+            ord.created_at as ord_created_at
+    -- from snp.preorders as po
+    from ${ref('stg_lavka__preorders')} as po
+    -- left join snp.orders_lavka as ord
+    left join ${ref('stg_lavka__orders_lavka')} as ord
+    on po.id = ord.preorder_id 
+    -- where ord.created_at >= '{0}'
+    where ord.created_at >= timestamp_checkpoint
+),
+_surge as (
+    select 
+        id as surge_id,
+        decision_made_at,
+        next_decision_at,
+        warehouse_id,
+        min_amount_enabled,
+        min_amount
+    -- from snp.surge_logs
+    from ${ref('stg_lavka_surge__surge_logs')}
+    -- where decision_made_at >= '{0}'
+    where decision_made_at >= timestamp_checkpoint
+)
+
+select  t5.surge_id,
+        t5.min_amount_enabled,
+        t5.min_amount,
+        t1.order_id,
+        t1.preorder_id,
+        t1.po_created_at,
+        t1.ord_created_at,
+        t1.warehouse_id      
+from _orders_lavka as t1
+left join _surge as t5
+    on t1.warehouse_id = t5.warehouse_id
+    and t1.po_created_at >= t5.decision_made_at
+    and t1.po_created_at < t5.next_decision_at
+
