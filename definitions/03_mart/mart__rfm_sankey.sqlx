@@ -1,0 +1,66 @@
+--TODO: transfer ETL to DataForm and change source for this matr
+
+config {
+  type: 'incremental',
+  description: 'Mart for users moving between RFM scores',
+  schema: 'mart',
+  tags: ['push_performance', 'mart', 'rfm'],
+  name: 'mart__rfm_sankey',
+  bigquery: {
+    partitionBy: 'source_day',
+    clusterBy: ['source_rfm', 'dest_rfm']
+  }
+}
+
+pre_operations {
+  declare date_checkpoint date; 
+  set date_checkpoint = coalesce((
+    ${when(incremental(),
+    `select date_sub(max(source_day), interval 2 day) from ${self()}`,
+    `date("2025-03-25")`)}
+  ), date("2025-03-25"));
+  
+  ${when(incremental(),
+      `delete from ${self()} where source_day >= date_checkpoint`
+  )}
+}
+
+with sorted_snapshots as (
+  select
+    user_id,
+    snapshot_day,
+    rfm_score,
+    row_number() over (partition by user_id order by snapshot_day) as rn
+  from
+    ${ref('rfm_28d_score')}
+  where
+    snapshot_day >= date_checkpoint
+)
+,
+
+paired_transitions as (
+  select
+    curr.snapshot_day       as  source_day,
+    curr.user_id,
+    curr.rfm_score          as source_rfm,
+    next.rfm_score          as dest_rfm
+  from
+    sorted_snapshots curr
+  join
+    sorted_snapshots next
+  on
+    curr.user_id = next.user_id
+    and curr.rn + 1 = next.rn
+)
+
+select
+  source_day,
+  source_rfm,
+  dest_rfm,
+  count(distinct user_id)   as weight
+from
+  paired_transitions
+group by
+  source_day,
+  source_rfm,
+  dest_rfm

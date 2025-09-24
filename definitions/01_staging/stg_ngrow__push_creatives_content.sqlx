@@ -11,7 +11,6 @@ config {
 
 select
     current_timestamp()             as _view_accessed_at,
-    `timestamp`                     as push_sent_datetime,
     date(`timestamp`)               as push_sent_date,
     push_id,
     hypo_id,
@@ -31,4 +30,7 @@ from
     ${ref('raw_ngrow__push_notification_postbacks')}
 where
     push_id is not null
-    and hypo_id is not null
+and
+    hypo_id is not null
+group by
+    1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16
