@@ -7,7 +7,7 @@ config {
   name: 'int_surge_orders_mapping',
   bigquery: {
     partitionBy: 'timestamp_trunc(po_created_at, day)',
-    updatePartitionFilter: 'event_time >= timestamp_sub(current_timestamp(), interval 2 day)',
+    updatePartitionFilter: 'event_time >= timestamp_sub(current_timestamp(), interval 7 day)',
     clusterBy: ['warehouse_id']
   },
   

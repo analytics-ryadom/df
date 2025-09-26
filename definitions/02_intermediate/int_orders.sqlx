@@ -6,7 +6,7 @@ config {
   name: 'int_orders',
   bigquery: {
     partitionBy: 'timestamp_trunc(created_at, day)',
-    updatePartitionFilter: 'event_time >= timestamp_sub(current_timestamp(), interval 2 day)',
+    updatePartitionFilter: 'event_time >= timestamp_sub(current_timestamp(), interval 7 day)',
     clusterBy: ['warehouse_id']
   },
   
@@ -16,7 +16,7 @@ pre_operations {
     DECLARE timestamp_checkpoint DEFAULT (
     ${when(incremental(),
     `SELECT timestamp(timestamp_sub(current_timestamp(), interval 3 day))`,
-    `SELECT timestamp("2025-05-01")`)}
+    `SELECT timestamp("2022-01-01")`)}
   )
   }
 
