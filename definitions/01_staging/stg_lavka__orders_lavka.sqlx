@@ -53,3 +53,4 @@ select
     provider_user_id
 from
     ${ref('orders_lavka')}
+  where created_at >= '2022-01-01'
