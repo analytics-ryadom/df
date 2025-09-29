@@ -1,0 +1,135 @@
+config {
+  type: 'incremental',
+  description: 'Daily snapshots of fact table with amplitude users properties',
+  schema: 'mart',
+  tags: ['users', 'mart', 'snapshot', 'amplitude'],
+  protected: true,
+  name: 'fct__users__properties_snapshots',
+  bigquery: {
+    partitionBy: '_snapshot_date',
+    clusterBy: ['user_id']
+  }, 
+}
+
+pre_operations {
+
+  ${when(incremental(),
+      `delete from ${self()} 
+       where _snapshot_date = current_date()`
+  )}
+}
+
+with
+  _amplitude_base_data as ( 
+    select
+        safe_cast(user_id as int64) as user_id,
+        event_time,
+        event_type,
+        json_value(sa_user_properties, '$."[AppsFlyer] media source"') as media_source,
+        last_value(json_value(sa_user_properties, '$."[AppsFlyer] media source"') ignore nulls) over(partition by user_id order by event_time rows between unbounded preceding and unbounded following) as last_media_source,
+        filled_sa_amplitude_id,
+        sa_session_id,
+        last_value(filled_sa_amplitude_id ignore nulls) over(partition by user_id order by event_time rows between unbounded preceding and unbounded following) as last_filled_sa_amplitude_id,
+        event_source,
+        last_value(platform ignore nulls) over(partition by user_id order by event_time rows between unbounded preceding and unbounded following) as last_device_operating_system
+        -- last_value(
+        --   case
+        --     when lower(json_value(ma_event_properties, '$.user_agen')) like '%ios%' then 'ios'
+        --     when lower(json_value(ma_event_properties, '$.user_agen')) like '%android%' then 'android'
+        --     else 'unkonwn'
+        --   end) over(partition by user_id order by event_time rows between unbounded preceding and unbounded following) as last_device_operating_system,
+    from
+      ${ref(`int_amplitude__combined_events`)}
+    where
+      user_id is not null
+    and
+      event_source = 'superapp'
+    order by
+      user_id, event_time
+  )
+
+  , _amplitude_user_data as (
+    select
+      user_id,
+      last_filled_sa_amplitude_id,
+      last_media_source,
+      last_device_operating_system
+    from
+      _amplitude_base_data
+    group by 1,2,3,4
+    order by 1
+  )
+
+  ,   _db_base_data as (
+    select
+      user_id,
+      created_at,
+      order_id,
+      last_value(warehouse_id ignore nulls) over(partition by user_id order by created_at rows between unbounded preceding and unbounded following) as last_active_warehouse_id,
+      last_value(polygon_id ignore nulls) over(partition by user_id order by created_at rows between unbounded preceding and unbounded following) as last_active_polygon_id,
+      price
+    from
+      ${ref('int_orders')}
+  )
+
+  , _db_user_data as (
+    select
+      user_id,
+      min(db.created_at)        as first_order_dttm,
+      max(db.created_at)        as last_order_dttm,
+      count(distinct order_id)  as total_orders_count,
+      sum(price)                as user_gmv,
+      w.city_id                 as last_active_city_id,
+      last_active_warehouse_id,
+      last_active_polygon_id,
+    from
+      _db_base_data db
+    left join
+      ${ref('warehouses')} w
+    on
+      db.last_active_warehouse_id = w.id
+    group by
+      user_id, last_active_warehouse_id, last_active_polygon_id, w.city_id
+  )
+
+select
+  current_date()            as _snapshot_date,
+  current_datetime()        as _run_dttm,
+
+  amp.last_filled_sa_amplitude_id,
+  case
+    when amp.last_filled_sa_amplitude_id is null then 'unkown'
+    else amp.last_filled_sa_amplitude_id
+  end as filtered_last_filled_sa_amplitude_id,
+  amp.last_device_operating_system,
+  case
+    when amp.last_device_operating_system is null then 'unkown'
+    else amp.last_device_operating_system
+  end as filtered_last_device_operating_system,
+  amp.last_media_source,
+  case
+    when amp.last_media_source is null then 'unkown'
+    else amp.last_media_source
+  end as filtered_last_media_source,
+  db.user_id,
+  db.first_order_dttm,
+  db.last_order_dttm,
+  db.last_active_city_id,
+  case
+    when db.last_active_city_id is null then 'unkown'
+    else safe_cast(db.last_active_city_id as string)
+  end as filtered_last_active_city_id,
+  db.last_active_warehouse_id,
+  case
+    when db.last_active_warehouse_id is null then 'unkown'
+    else safe_cast(db.last_active_warehouse_id as string)
+  end as filtered_last_active_warehouse_id,
+  db.last_active_polygon_id,
+  db.total_orders_count,
+  db.user_gmv
+from
+  _db_user_data db
+left join
+  _amplitude_user_data amp
+on
+  db.user_id = amp.user_id
