@@ -1,0 +1,154 @@
+config {
+  type: 'incremental',
+  description: 'Intermediate layer with moving 7 and 31 days metrics',
+  schema: 'intermediate',
+  tags: ['intermediate', 'orders', `users`],
+  name: 'int__orders__moving_aggregation',
+  bigquery: {
+    partitionBy: 'calculation_date',
+    updatePartitionFilter: 'calculation_date >= date_sub(current_date(), interval 6 day)',
+    clusterBy: ['user_id']
+  },
+  
+}
+
+pre_operations {
+  declare date_checkpoint date; 
+  set date_checkpoint = (
+    ${when(incremental(),
+      `select date_sub(max(calculation_date), interval 3 day) from ${self()}`, `date("2025-05-01")`)}
+    );
+
+    ${when(incremental(),
+      `delete from ${self()} where calculation_date >= date_checkpoint`)
+    }
+  }
+
+${when(incremental(),
+`--Incremental logic
+with
+  _date_range as (
+    select
+      calculation_date,
+      date_sub(calculation_date, interval 7 day) as week_start,
+      date_sub(calculation_date, interval 1 day) as week_end,
+      date_sub(calculation_date, interval 31 day) as month_start,
+      date_sub(calculation_date, interval 1 day) as month_end
+    from
+      unnest(
+        generate_date_array(date_sub(date_checkpoint, interval 3 day), current_date('UTC+5'), interval 1 day)) as calculation_date
+  )
+
+  select
+    "week" as aggregation_period,
+    dr.calculation_date,
+    dr.week_start as period_start,
+    dr.week_end as period_end,
+    user_id,
+    count(distinct order_id) as user_orders_cnt,
+    case
+      when count(distinct order_id) >= 1 then 1
+      else 0
+    end as active_user_flag
+  from
+    _date_range dr
+  left join
+    ${ref('int_orders')} o
+  on
+    date(o.created_at) between week_start and week_end
+  group by
+    dr.calculation_date,
+    dr.week_start,
+    dr.week_end,
+    user_id
+
+  union all
+
+  select
+    "month" as aggregation_period,
+    dr.calculation_date,
+    dr.month_start as period_start,
+    dr.month_end as period_end,
+    user_id,
+    count(distinct order_id) user_orders_cnt,
+    case
+      when count(distinct order_id) >= 4 then 1
+      else 0
+    end as active_user_flag
+  from
+    _date_range dr
+  left join
+    ${ref('int_orders')} o
+  on
+    date(o.created_at) between month_start and month_end
+  group by
+    dr.calculation_date,
+    dr.month_start,
+    dr.month_end,
+    user_id`
+
+,
+  
+`-- Full refrsh logic
+  with
+  _date_range as (
+    select
+      calculation_date,
+      date_sub(calculation_date, interval 7 day) as week_start,
+      date_sub(calculation_date, interval 1 day) as week_end,
+      date_sub(calculation_date, interval 31 day) as month_start,
+      date_sub(calculation_date, interval 1 day) as month_end
+    from
+      unnest(
+        generate_date_array(date_sub(current_date(), interval 30 day), current_date('UTC+5'), interval 1 day)) as calculation_date
+  )
+
+select
+    "week" as aggregation_period,
+    dr.calculation_date,
+    dr.week_start as period_start,
+    dr.week_end as period_end,
+    user_id,
+    count(distinct order_id) as user_orders_cnt,
+    case
+    when count(distinct order_id) >= 1 then 1
+    else 0
+    end as active_user_flag
+from
+    _date_range dr
+left join
+    ${ref('int_orders')} o
+on
+    date(o.created_at) between week_start and week_end
+group by
+    dr.calculation_date,
+    dr.week_start,
+    dr.week_end,
+    user_id
+
+union all
+
+select
+    "month" as aggregation_period,
+    dr.calculation_date,
+    dr.month_start as period_start,
+    dr.month_end as period_end,
+    user_id,
+    count(distinct order_id) user_orders_cnt,
+    case
+    when count(distinct order_id) >= 4 then 1
+    else 0
+    end as active_user_flag
+from
+    _date_range dr
+left join
+    ${ref('int_orders')} o
+on
+    date(o.created_at) between month_start and month_end
+group by
+    dr.calculation_date,
+    dr.month_start,
+    dr.month_end,
+    user_id`
+)
+}
