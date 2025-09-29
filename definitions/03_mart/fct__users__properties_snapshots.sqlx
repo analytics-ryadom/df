@@ -98,17 +98,17 @@ select
 
   amp.last_filled_sa_amplitude_id,
   case
-    when amp.last_filled_sa_amplitude_id is null then 'unkown'
+    when amp.last_filled_sa_amplitude_id is null then 'unknown'
     else amp.last_filled_sa_amplitude_id
   end as filtered_last_filled_sa_amplitude_id,
   amp.last_device_operating_system,
   case
-    when amp.last_device_operating_system is null then 'unkown'
+    when amp.last_device_operating_system is null then 'unknown'
     else amp.last_device_operating_system
   end as filtered_last_device_operating_system,
   amp.last_media_source,
   case
-    when amp.last_media_source is null then 'unkown'
+    when amp.last_media_source is null then 'unknown'
     else amp.last_media_source
   end as filtered_last_media_source,
   db.user_id,
@@ -116,12 +116,12 @@ select
   db.last_order_dttm,
   db.last_active_city_id,
   case
-    when db.last_active_city_id is null then 'unkown'
+    when db.last_active_city_id is null then 'unknown'
     else safe_cast(db.last_active_city_id as string)
   end as filtered_last_active_city_id,
   db.last_active_warehouse_id,
   case
-    when db.last_active_warehouse_id is null then 'unkown'
+    when db.last_active_warehouse_id is null then 'unknown'
     else safe_cast(db.last_active_warehouse_id as string)
   end as filtered_last_active_warehouse_id,
   db.last_active_polygon_id,
