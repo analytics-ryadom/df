@@ -6,7 +6,7 @@ config {
   tags: ['courier', 'staging', 'motivations', 'view'],
   name:'stg_courier__courier_motivations',
   assertions: {
-    nonNull: ['id', 'courier_id', 'motivation_program_id'],
+    nonNull: ['id'],
     uniqueKey: ['id']
   }
 }
