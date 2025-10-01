@@ -15,7 +15,7 @@ pre_operations {
     DECLARE timestamp_checkpoint DEFAULT (
     ${when(incremental(),
     `SELECT timestamp(timestamp_sub(${dataform.projectConfig.vars.execution_date}, interval 3 day))`,
-    `SELECT timestamp("2020-05-01")`)}
+    `SELECT timestamp("2023-01-01")`)}
   )
   }
 
@@ -27,9 +27,7 @@ with _orders as (
            courier_id,
            count(*) over (partition by batch_id) as n,
            ROW_NUMBER() over (partition by batch_id order by created_at) as batch_n
-    -- from snp.orders
     from ${ref('stg_courier__orders')}
-    -- where created_at >= '{0}'
     where created_at >= timestamp_checkpoint
 ),
 _order_stat as (
@@ -47,9 +45,7 @@ _order_stat as (
            max(case when type = "order_canceled"           then created_at end) as order_canceled,
            -- если нет ключа идемпотентности, значит, "back_to_warehouse" проставлен автоматически
            max(type = "back_to_warehouse" and idempotency_key is null)          as autofinish_flg
-    -- from snp.order_status_history
     from ${ref('stg_courier__order_status_history')}
-    -- where created_at >= '{0}'
     where created_at >= timestamp_checkpoint
     group by 1
 ),
@@ -59,11 +55,9 @@ _batches as (
            case when coalesce(o.batch_n, 1) = 2 then
                greatest(b.ready_time, ost.order_ready_for_delivery)
            else b.ready_time end as ready_time
-    -- from snp.batches b
     from ${ref('stg_courier__batches')} b
         join _orders o on o.batch_id = b.id
         join _order_stat ost on ost.order_id = o.order_id
-    -- where b.created_at >= '{0}'
     where b.created_at >= timestamp_checkpoint
 ),
 _batch_stat as (
@@ -73,11 +67,9 @@ _batch_stat as (
             max(case when type = 20 then b.created_at end) as courier_last_offer
     from _orders o
         join _order_stat ost on ost.order_id = o.order_id
-        -- join `organic-reef-315010.snp.courier_batch_history` b
         join ${ref('stg_courier__courier_batch_history')} b
             on b.batch_id = o.batch_id
                 and b.created_at >= ost.order_ready_for_delivery
-    -- where b.created_at >= '{0}'
     where b.created_at >= timestamp_checkpoint
     group by 1, 2
 )

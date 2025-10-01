@@ -1,0 +1,43 @@
+config {
+  type: 'incremental',
+  description: 'Intermediate courier motivations table ',
+  schema: 'intermediate',
+  tags: ['intermediate', 'courier', 'motivations'],
+  name: 'int_courier_motivations',
+  bigquery: {
+    partitionBy: 'timestamp_trunc(created_at, day)',
+    updatePartitionFilter: 'event_time >= timestamp_sub(current_timestamp(), interval 7 day)',
+    clusterBy: ['polygon_id']
+  },
+  
+}
+
+pre_operations {
+    DECLARE timestamp_checkpoint DEFAULT (
+    ${when(incremental(),
+    `SELECT timestamp(timestamp_sub(${dataform.projectConfig.vars.execution_date}, interval 3 day))`,
+    `SELECT timestamp("2023-01-01")`)}
+  )
+  }
+
+select order_id,
+        t1.created_at,
+        t1.employee_rate_id,
+        got_bonus,
+        polygon_id,
+        surge_bonus,
+        surge_coefficient,
+        t1.amount as money_bonus,
+        from_eta,
+        to_eta,
+        cast(json_extract(t1.polygon_data, '$.regular.eta') as int)
+            + coalesce(cast(json_extract(t1.polygon_data, '$.rain.eta') as int), 0) as eta,
+        rider_coefficient as rider_x_coefficient
+    from (
+        select *
+        from ${ref('stg_courier__courier_motivations')}
+        where created_at >= timestamp_checkpoint
+         ) as t1
+    left join ${ref('stg_courier__motivation_programs')} as t2
+        on t1.motivation_program_id = t2.id
+        
