@@ -1,0 +1,52 @@
+config {
+  type: 'incremental',
+  description: 'Orders items',
+  schema: 'intermediate',
+  tags: ['intermediate', 'orders', 'items'],
+  name: 'int_order_items',
+  
+}
+
+pre_operations {
+    DECLARE timestamp_checkpoint DEFAULT (
+    ${when(incremental(),
+    `SELECT timestamp(timestamp_sub(${dataform.projectConfig.vars.execution_date}, interval 3 day))`,
+    `SELECT timestamp("2023-01-01")`)}
+  )
+  }
+
+with 
+_order_items as (
+    select order_id,
+           count(*) as n_items
+    from ${ref('stg_lavka__order_items')}
+    where scanned_at >= timestamp_checkpoint
+    group by 1
+),
+
+_additional_order_items as (
+    select order_id,
+           count(case when ap.type = 'service_fee' then aoi.id end) > 0 as service_fee_purchase,
+           count(case when ap.type = 'own_paid_delivery' then aoi.id end) > 0 as delivery_fee_purchase,
+           sum(case when ap.type = 'service_fee' then aoi.price end)/100 as service_fee_price,
+           sum(case when ap.type = 'own_paid_delivery' then aoi.price end)/100 as delivery_fee_price,
+           sum(aoi.price)/100 as total_additional_price
+    from ${ref('stg_lavka__additional_order_items')} aoi
+        join ${ref('stg_lavka__additional_products')} ap on ap.id = aoi.product_id
+     where aoi.created_at >= timestamp_checkpoint
+    group by 1
+)
+
+select  
+        t2.order_id,
+        t2.n_items,
+        t22.service_fee_purchase,
+        t22.delivery_fee_purchase,
+        coalesce(t22.service_fee_price, 0) as service_fee_price,
+        coalesce(t22.delivery_fee_price, 0) as delivery_fee_price,
+        coalesce(t22.total_additional_price, 0) as total_additional_price
+from _order_items as t2
+left join _additional_order_items t22
+    on t2.order_id = t22.order_id
+
+

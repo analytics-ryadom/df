@@ -1,0 +1,56 @@
+config {
+  type: 'incremental',
+  description: 'A table wich joined orders from lavka and courier parts',
+  schema: 'intermediate',
+  tags: ['intermediate', 'orders', 'lavka', 'couriers'],
+  name: 'int_lavka_courier_orders',
+  bigquery: {
+    partitionBy: 'timestamp_trunc(created_at, day)',
+    updatePartitionFilter: 'event_time >= timestamp_sub(current_timestamp(), interval 7 day)',
+    clusterBy: ['warehouse_id']
+  },
+  
+}
+
+pre_operations {
+    DECLARE timestamp_checkpoint DEFAULT (
+    ${when(incremental(),
+    `SELECT timestamp(timestamp_sub(${dataform.projectConfig.vars.execution_date}, interval 3 day))`,
+    `SELECT timestamp("2023-01-01")`)}
+  )
+  }
+
+with _orders_cour as (
+    select order_id,
+           batch_id,
+           courier_motivation_amount,
+           warehouse_id,
+           t1.address,
+           t2.lat as wh_lat,
+           t2.long as wh_long
+    from ${ref('stg_courier__orders')} as t1
+    join ${ref('stg_lavka__warehouses')} as t2
+        on t1.warehouse_id = t2.id
+    where t1.created_at >= timestamp_checkpoint
+),
+_orders_lavka as (
+    select  id as order_id,
+            user_id,
+            lat as order_lat,
+            long as order_long,
+            paid_at,
+            paid_at is not null as paid_flg,
+            price / 100 as price,
+            created_at,
+    from ${ref('stg_lavka__orders_lavka')}
+    where created_at >= timestamp_checkpoint
+)
+
+    select  *,
+            ST_DISTANCE(
+               ST_GEOGPOINT(cast(order_long as float64), cast(order_lat as float64)),
+               ST_GEOGPOINT(cast(wh_long as float64), cast(wh_lat as float64))
+               ) as order_distance
+    from _orders_lavka as t1
+    left join _orders_cour as t2
+    using(order_id)

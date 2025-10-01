@@ -1,0 +1,96 @@
+config {
+  type: 'incremental',
+  description: 'Intermediate orders table ',
+  schema: 'mart',
+  tags: ['mart', 'orders'],
+  name: 'mart_orders',
+  bigquery: {
+    partitionBy: 'timestamp_trunc(created_at, day)',
+    updatePartitionFilter: 'event_time >= timestamp_sub(current_timestamp(), interval 7 day)',
+    clusterBy: ['warehouse_id']
+  },
+  
+}
+
+pre_operations {
+    DECLARE timestamp_checkpoint DEFAULT (
+    ${when(incremental(),
+    `SELECT timestamp(timestamp_sub(${dataform.projectConfig.vars.execution_date}, interval 3 day))`,
+    `SELECT timestamp("2023-01-01")`)}
+  )
+  }
+
+
+select  t1.order_id,
+        t1.batch_id,
+        t1.warehouse_id,
+        batch_n,
+        order_lat,
+        order_long,
+        wh_lat,
+        wh_long,
+        order_distance,
+        price,
+        n_items,
+        t2.service_fee_purchase,
+        t2.delivery_fee_purchase,
+        coalesce(t2.service_fee_price, 0) as service_fee_price,
+        coalesce(t2.delivery_fee_price, 0) as delivery_fee_price,
+        coalesce(t2.total_additional_price, 0) as total_additional_price,
+        t1.created_at,
+        picker_id,
+        courier_id as courier_delivered,
+        paid_at,
+        paid_flg,
+        address,
+        order_received,
+        picker_assigned,
+        TIMESTAMP_DIFF(picker_assigned, t1.created_at, second) as picker_assigned_seconds,
+        picker_collecting,
+        TIMESTAMP_DIFF(picker_collecting, picker_assigned, second) as picker_collecting_seconds,
+        picker_collected,
+        TIMESTAMP_DIFF(picker_collected, picker_collecting, second) as picker_collected_seconds,
+        wait_batching,
+        TIMESTAMP_DIFF(
+           GREATEST(wait_batching, last_order_ready_for_delivery),
+           order_ready_for_delivery,
+           second
+           ) as batching_wait_seconds,
+        last_order_ready_for_delivery,
+        courier_first_offer as courier_first_offer_dttm,
+        courier_last_offer as courier_last_offer_dttm,
+        TIMESTAMP_DIFF(courier_last_offer, last_order_ready_for_delivery, second) as no_courier_seconds,
+        taken_by_courier as taken_dttm,
+        order_delivered as order_delivered_dttm,
+        TIMESTAMP_DIFF(order_delivered, taken_by_courier, second) as delivery_seconds,
+        back_to_warehouse as back_to_warehouse_dttm,
+        TIMESTAMP_DIFF(back_to_warehouse, order_delivered, second) as back_seconds,
+        autofinish_flg,
+        order_canceled,
+        courier_motivation_amount, -- то какой бонус мы предложили
+        employee_rate_id,
+        got_bonus,
+        polygon_id,
+        surge_bonus,
+        surge_coefficient,
+        money_bonus,
+        coalesce(from_eta, eta) as from_eta,
+        to_eta,
+        eta,
+        rider_x_coefficient,
+        min_amount_enabled as surge_enable,
+        min_amount as min_check_amount,
+        user_id
+from ${ref('int_lavka_courier_orders')} as t1
+left join ${ref('int_order_items')} as t2
+    on t1.order_id = t2.order_id
+left join ${ref('int_order_statuses')} as t3
+    on t1.order_id = t3.order_id
+left join ${ref('int_courier_motivations')} as t4
+    on t1.order_id = t4.order_id
+left join ${ref('int_surge_orders_mapping')} as t5
+    on t1.order_id = t5.order_id 
+
+where t1.created_at >= timestamp_checkpoint 
+
+

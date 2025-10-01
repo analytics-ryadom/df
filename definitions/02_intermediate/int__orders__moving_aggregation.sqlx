@@ -53,7 +53,8 @@ with
   from
     _date_range dr
   left join
-    ${ref('int_orders')} o
+    
+    ${ref('int_lavka_courier_orders')} o
   on
     date(o.created_at) between week_start and week_end
   group by
@@ -78,7 +79,8 @@ with
   from
     _date_range dr
   left join
-    ${ref('int_orders')} o
+    
+    ${ref('int_lavka_courier_orders')} o
   on
     date(o.created_at) between month_start and month_end
   group by
@@ -117,7 +119,8 @@ select
 from
     _date_range dr
 left join
-    ${ref('int_orders')} o
+    
+    ${ref('int_lavka_courier_orders')} o
 on
     date(o.created_at) between week_start and week_end
 group by
@@ -142,7 +145,8 @@ select
 from
     _date_range dr
 left join
-    ${ref('int_orders')} o
+    
+    ${ref('int_lavka_courier_orders')} o
 on
     date(o.created_at) between month_start and month_end
 group by
