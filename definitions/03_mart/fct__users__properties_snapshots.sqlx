@@ -1,8 +1,8 @@
 config {
   type: 'incremental',
-  description: 'Daily snapshots of fact table with amplitude users properties',
+  description: 'Daily snapshots of fact table with amplitude and backend users properties',
   schema: 'mart',
-  tags: ['users', 'mart', 'snapshot', 'amplitude'],
+  tags: ['users', 'mart', 'snapshot'],
   protected: true,
   name: 'fct__users__properties_snapshots',
   bigquery: {
@@ -19,6 +19,8 @@ pre_operations {
   )}
 }
 
+<<<<<<< HEAD
+=======
 with
   _amplitude_base_data as ( 
     select
@@ -105,15 +107,11 @@ with
       user_id, last_active_warehouse_id, last_active_polygon_id, w.city_id
   )
 
+>>>>>>> refs/heads/main
 select
   current_date()            as _snapshot_date,
   current_datetime()        as _run_dttm,
 
-  amp.last_filled_sa_amplitude_id,
-  case
-    when amp.last_filled_sa_amplitude_id is null then 'unknown'
-    else amp.last_filled_sa_amplitude_id
-  end as filtered_last_filled_sa_amplitude_id,
   amp.last_device_operating_system,
   case
     when amp.last_device_operating_system is null then 'unknown'
@@ -125,8 +123,8 @@ select
     else amp.last_media_source
   end as filtered_last_media_source,
   db.user_id,
-  db.first_order_dttm,
-  db.last_order_dttm,
+  db.first_order_dt,
+  db.last_order_dt,
   db.last_active_city_id,
   case
     when db.last_active_city_id is null then 'unknown'
@@ -141,8 +139,10 @@ select
   db.total_orders_count,
   db.user_gmv
 from
-  _db_user_data db
+  ${ref('int__users__backend_properties_snapshots')} db
 left join
-  _amplitude_user_data amp
+  ${ref('int__users__superapp_amplitude_properties_snapshots')} amp
 on
   db.user_id = amp.user_id
+and
+  db._snapshot_date = amp._snapshot_date
