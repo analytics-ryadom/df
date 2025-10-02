@@ -1,0 +1,52 @@
+config {
+  type: 'incremental',
+  description: 'Daily int snapshots with superapp amplitude users properties',
+  schema: 'intermediate',
+  tags: ['users', 'intermediate', 'snapshot', 'amplitude'],
+  protected: true,
+  name: 'int__users__superapp_amplitude_properties_snapshots',
+  bigquery: {
+    partitionBy: '_snapshot_date',
+    clusterBy: ['user_id']
+  }, 
+}
+
+pre_operations {
+
+  ${when(incremental(),
+      `delete from ${self()} 
+       where _snapshot_date = current_date()`
+  )}
+}
+
+with
+  _amplitude_base_data as ( 
+    select
+        safe_cast(user_id as int64) as user_id,
+        event_time,
+        json_value(sa_user_properties, '$."[AppsFlyer] media source"') as media_source,
+        last_value(json_value(sa_user_properties, '$."[AppsFlyer] media source"') ignore nulls) over(partition by user_id order by event_time rows between unbounded preceding and unbounded following) as last_media_source,
+        last_value(platform ignore nulls) over(partition by user_id order by event_time rows between unbounded preceding and unbounded following) as last_device_operating_system
+        -- last_value(
+        --   case
+        --     when lower(json_value(ma_event_properties, '$.user_agen')) like '%ios%' then 'ios'
+        --     when lower(json_value(ma_event_properties, '$.user_agen')) like '%android%' then 'android'
+        --     else 'unkonwn'
+        --   end) over(partition by user_id order by event_time rows between unbounded preceding and unbounded following) as last_device_operating_system,
+    from
+      ${ref(`stg_amplitude__superapp_events`)}
+    where
+      user_id is not null
+    order by
+      user_id, event_time
+  )
+
+select
+    date_sub(current_date(), interval 1 day) as _snapshot_date,
+
+    user_id,
+    last_media_source,
+    last_device_operating_system
+from
+    _amplitude_base_data
+group by 1,2,3,4

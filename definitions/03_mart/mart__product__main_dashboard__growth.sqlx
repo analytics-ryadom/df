@@ -52,7 +52,7 @@ with
       up.last_active_warehouse_id,
       up.filtered_last_active_warehouse_id,
       case
-        when date_diff(wob.calculation_date, date(up.first_order_dttm), day) <= 7 then 1
+        when date_diff(wob.calculation_date, date(up.first_order_dt), day) <= 7 then 1
         else 0
       end as weekly_newbie_flag,
       up.total_orders_count,
@@ -62,14 +62,14 @@ with
     from
       _base_data wob
     left join
-      `mart_dev.fct__users__properties_snapshots` up
+      ${ref('fct__users__properties_snapshots')} up
     on
-      wob.calculation_date <= '2025-09-28'
+      wob.calculation_date <= '2025-09-29'
     and
-      up._snapshot_date = '2025-09-29'
+      up._snapshot_date = '2025-09-30'
     and
       wob.user_id = up.user_id
-    and
+    where
       wob.aggregation_period = 'week'
 
     union all
@@ -90,7 +90,7 @@ with
       up.last_active_warehouse_id,
       up.filtered_last_active_warehouse_id,
       case
-        when date_diff(wob.calculation_date, date(up.first_order_dttm), day) <= 7 then 1
+        when date_diff(wob.calculation_date, date(up.first_order_dt), day) <= 7 then 1
         else 0
       end as weekly_newbie_flag,
       up.total_orders_count,
@@ -100,14 +100,14 @@ with
     from
       _base_data wob
     left join
-      `mart_dev.fct__users__properties_snapshots` up
+      ${ref('fct__users__properties_snapshots')} up
     on
-      wob.calculation_date > '2025-09-28'
+      wob.calculation_date > '2025-09-29'
     and
       wob.calculation_date = up._snapshot_date
     and
       wob.user_id = up.user_id
-    and
+    where
       wob.aggregation_period = 'week'
     
   )
@@ -129,7 +129,7 @@ with
       up.last_active_warehouse_id,
       up.filtered_last_active_warehouse_id,
       case
-        when date_diff(mob.calculation_date, date(up.first_order_dttm), day) <= 30 then 1
+        when date_diff(mob.calculation_date, date(up.first_order_dt), day) <= 30 then 1
         else 0
       end as monthly_newbie_flag,
       up.total_orders_count,
@@ -139,12 +139,14 @@ with
     from
       _base_data mob
     left join
-      `mart_dev.fct__users__properties_snapshots` up
+      ${ref('fct__users__properties_snapshots')} up
     on
+      mob.calculation_date <= '2025-09-29'
+    and
+      up._snapshot_date = '2025-09-30'
+    and
       mob.user_id = up.user_id
-    and
-      mob.calculation_date = up._snapshot_date
-    and
+    where
       mob.aggregation_period = 'month'
 
     union all
@@ -165,7 +167,7 @@ with
       up.last_active_warehouse_id,
       up.filtered_last_active_warehouse_id,
       case
-        when date_diff(mob.calculation_date, date(up.first_order_dttm), day) <= 30 then 1
+        when date_diff(mob.calculation_date, date(up.first_order_dt), day) <= 30 then 1
         else 0
       end as monthly_newbie_flag,
       up.total_orders_count,
@@ -175,14 +177,14 @@ with
     from
       _base_data mob
     left join
-      `mart_dev.fct__users__properties_snapshots` up
+      ${ref('fct__users__properties_snapshots')} up
     on
-      mob.calculation_date > '2025-09-28'
+      mob.calculation_date > '2025-09-29'
     and
       mob.calculation_date = up._snapshot_date
     and
       mob.user_id = up.user_id
-    and
+    where
       mob.aggregation_period = 'month'
   )
 
@@ -194,8 +196,8 @@ with
     monthly_newbie_flag as period_newbie_flag,
     coalesce(filtered_last_device_operating_system, 'unknown') as filtered_last_device_operating_system,
     coalesce(filtered_last_media_source, 'unknown') as filtered_last_media_source,
-    coalesce(filtered_last_active_city_id, '0') as filtered_last_active_city_id,
-    coalesce(filtered_last_active_warehouse_id, '0') as filtered_last_active_warehouse_id,
+    coalesce(filtered_last_active_city_id, 'unknown') as filtered_last_active_city_id,
+    coalesce(filtered_last_active_warehouse_id, 'unknown') as filtered_last_active_warehouse_id,
     count(distinct user_id) as users_cnt,
     sum(active_user_flag) as active_users_cnt,
     sum(orders_in_the_period) as ttl_orders_in_the_period,
@@ -214,10 +216,10 @@ with
     period_start,
     period_end,
     weekly_newbie_flag as period_newbie_flag,
-    coalesce(filtered_last_device_operating_system, 'unknown') as filtered_last_device_operating_system,
+    coalesce(filtered_last_device_operating_system, 'unknown') as filtered_laast_device_operating_system,
     coalesce(filtered_last_media_source, 'unknown') as filtered_last_media_source,
-    coalesce(filtered_last_active_city_id, '0') as filtered_last_active_city_id,
-    coalesce(filtered_last_active_warehouse_id, '0') as filtered_last_active_warehouse_id,
+    coalesce(filtered_last_active_city_id, 'unknown') as filtered_last_active_city_id,
+    coalesce(filtered_last_active_warehouse_id, 'unknown') as filtered_last_active_warehouse_id,
     count(distinct user_id) as users_cnt,
     sum(active_user_flag) as active_users_cnt,
     sum(orders_in_the_period) as ttl_orders_in_the_period,
