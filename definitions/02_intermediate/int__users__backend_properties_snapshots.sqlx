@@ -15,7 +15,7 @@ pre_operations {
 
   ${when(incremental(),
       `delete from ${self()} 
-       where _snapshot_date = current_date()`
+       where _snapshot_date = date_sub(current_date(), interval 1 day)`
   )}
 }
 
@@ -28,10 +28,10 @@ with
       date(first_value(created_at ignore nulls) over(partition by user_id order by created_at rows between unbounded preceding and unbounded following)) as first_order_dt,
       date(last_value(created_at ignore nulls) over(partition by user_id order by created_at rows between unbounded preceding and unbounded following)) as last_order_dt,
       last_value(warehouse_id ignore nulls) over(partition by user_id order by created_at rows between unbounded preceding and unbounded following) as last_active_warehouse_id,
-      last_value(polygon_id ignore nulls) over(partition by user_id order by created_at rows between unbounded preceding and unbounded following) as last_active_polygon_id,
+    --   last_value(polygon_id ignore nulls) over(partition by user_id order by created_at rows between unbounded preceding and unbounded following) as last_active_polygon_id,
       price
     from
-      ${ref('int_orders')}
+      ${ref('int_lavka_courier_orders')}
   )
 
 select
@@ -44,7 +44,7 @@ select
     sum(price)                as user_gmv,
     w.city_id                 as last_active_city_id,
     last_active_warehouse_id,
-    last_active_polygon_id,
+    -- last_active_polygon_id
 from
     _db_base_data db
 left join
@@ -52,5 +52,10 @@ left join
 on
     db.last_active_warehouse_id = w.id
 group by
-    user_id, first_order_dt, last_order_dt, last_active_warehouse_id, last_active_polygon_id, w.city_id
+    user_id,
+    first_order_dt,
+    last_order_dt,
+    last_active_warehouse_id,
+    -- last_active_polygon_id,
+    w.city_id
   

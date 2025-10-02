@@ -19,6 +19,95 @@ pre_operations {
   )}
 }
 
+<<<<<<< HEAD
+=======
+with
+  _amplitude_base_data as ( 
+    select
+        safe_cast(user_id as int64) as user_id,
+        event_time,
+        event_type,
+        json_value(sa_user_properties, '$."[AppsFlyer] media source"') as media_source,
+        last_value(json_value(sa_user_properties, '$."[AppsFlyer] media source"') ignore nulls) over(partition by user_id order by event_time rows between unbounded preceding and unbounded following) as last_media_source,
+        filled_sa_amplitude_id,
+        sa_session_id,
+        last_value(filled_sa_amplitude_id ignore nulls) over(partition by user_id order by event_time rows between unbounded preceding and unbounded following) as last_filled_sa_amplitude_id,
+        event_source,
+        last_value(platform ignore nulls) over(partition by user_id order by event_time rows between unbounded preceding and unbounded following) as last_device_operating_system
+        -- last_value(
+        --   case
+        --     when lower(json_value(ma_event_properties, '$.user_agen')) like '%ios%' then 'ios'
+        --     when lower(json_value(ma_event_properties, '$.user_agen')) like '%android%' then 'android'
+        --     else 'unkonwn'
+        --   end) over(partition by user_id order by event_time rows between unbounded preceding and unbounded following) as last_device_operating_system,
+    from
+      ${ref(`int_amplitude__combined_events`)}
+    where
+      user_id is not null
+    and
+      event_source = 'superapp'
+    order by
+      user_id, event_time
+  )
+
+  , _amplitude_user_data as (
+    select
+      user_id,
+      last_filled_sa_amplitude_id,
+      last_media_source,
+      last_device_operating_system
+    from
+      _amplitude_base_data
+    group by 1,2,3,4
+    order by 1
+  )
+
+  -- ,   _db_base_data as (
+  --   select
+  --     user_id,
+  --     created_at,
+  --     order_id,
+  --     last_value(warehouse_id ignore nulls) over(partition by user_id order by created_at rows between unbounded preceding and unbounded following) as last_active_warehouse_id,
+  --     last_value(polygon_id ignore nulls) over(partition by user_id order by created_at rows between unbounded preceding and unbounded following) as last_active_polygon_id,
+  --     price
+  --   from
+  --     ${ref('int_orders')}
+  -- )
+
+    ,   _db_base_data as (
+    select
+      lco.user_id,
+      lco.created_at,
+      lco.order_id,
+      last_value(lco.warehouse_id ignore nulls) over(partition by lco.user_id order by lco.created_at rows between unbounded preceding and unbounded following) as last_active_warehouse_id,
+      last_value(cm.polygon_id ignore nulls) over(partition by lco.user_id order by lco.created_at rows between unbounded preceding and unbounded following) as last_active_polygon_id,
+      price
+    from ${ref('int_lavka_courier_orders')} as lco
+    join ${ref('int_courier_motivations')} as cm 
+      on lco.order_id = cm.order_id
+  )
+
+  , _db_user_data as (
+    select
+      user_id,
+      min(db.created_at)        as first_order_dttm,
+      max(db.created_at)        as last_order_dttm,
+      count(distinct order_id)  as total_orders_count,
+      sum(price)                as user_gmv,
+      w.city_id                 as last_active_city_id,
+      last_active_warehouse_id,
+      last_active_polygon_id,
+    from
+      _db_base_data db
+    left join
+      ${ref('warehouses')} w
+    on
+      db.last_active_warehouse_id = w.id
+    group by
+      user_id, last_active_warehouse_id, last_active_polygon_id, w.city_id
+  )
+
+>>>>>>> refs/heads/main
 select
   current_date()            as _snapshot_date,
   current_datetime()        as _run_dttm,

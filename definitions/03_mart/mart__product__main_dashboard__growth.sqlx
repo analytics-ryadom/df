@@ -26,206 +26,23 @@ pre_operations {
     }
   }
 
-with
-  _base_data as (
-    select
-      *
-    from
-      `intermediate_dev.int__orders__moving_aggregation`
-    where
-      calculation_date >= date_checkpoint
-  )
-  , _week_enriched_base as (
-    select
-      wob.calculation_date,
-      wob.user_id,
-      wob.active_user_flag,
-      wob.user_orders_cnt as orders_in_the_period,
-      up.last_filled_sa_amplitude_id,
-      up.filtered_last_filled_sa_amplitude_id,
-      up.last_device_operating_system,
-      up.filtered_last_device_operating_system,
-      up.last_media_source,
-      up.filtered_last_media_source,
-      up.last_active_city_id,
-      up.filtered_last_active_city_id,
-      up.last_active_warehouse_id,
-      up.filtered_last_active_warehouse_id,
-      case
-        when date_diff(wob.calculation_date, date(up.first_order_dt), day) <= 7 then 1
-        else 0
-      end as weekly_newbie_flag,
-      up.total_orders_count,
-      wob.period_start,
-      wob.period_end,
-      wob.user_orders_cnt as mob_orders,
-    from
-      _base_data wob
-    left join
-      ${ref('fct__users__properties_snapshots')} up
-    on
-      wob.calculation_date <= '2025-09-29'
-    and
-      up._snapshot_date = '2025-09-30'
-    and
-      wob.user_id = up.user_id
-    where
-      wob.aggregation_period = 'week'
+select
+  aggregation_period,
+  calculation_date,
+  period_start,
+  period_end,
+  newbie_flag as period_newbie_flag,
+  coalesce(last_device_operating_system, 'unknown') as filtered_last_device_operating_system,
+  coalesce(safe_cast(last_media_source as string), 'unknown') as filtered_last_media_source,
+  coalesce(safe_cast(last_active_city_id as string), 'unknown') as filtered_last_active_city_id,
+  coalesce(safe_cast(last_active_warehouse_id as string), 'unknown') as filtered_last_active_warehouse_id,
+  count(distinct user_id) as users_cnt,
+  sum(active_user_flag) as active_users_cnt,
+  sum(user_orders_cnt) as ttl_orders_in_the_period,
+  sum(case when active_user_flag = 1 then user_orders_cnt else 0 end) as active_orders_cnt,
+  sum(case when active_user_flag = 0 then user_orders_cnt else 0 end) as inactive_orders_cnt
+from
+    ${ref('int__orders__moving_aggregation')}
+group by
+  1,2,3,4,5,6,7,8,9
 
-    union all
-
-    select
-      wob.calculation_date,
-      wob.user_id,
-      wob.active_user_flag,
-      wob.user_orders_cnt as orders_in_the_period,
-      up.last_filled_sa_amplitude_id,
-      up.filtered_last_filled_sa_amplitude_id,
-      up.last_device_operating_system,
-      up.filtered_last_device_operating_system,
-      up.last_media_source,
-      up.filtered_last_media_source,
-      up.last_active_city_id,
-      up.filtered_last_active_city_id,
-      up.last_active_warehouse_id,
-      up.filtered_last_active_warehouse_id,
-      case
-        when date_diff(wob.calculation_date, date(up.first_order_dt), day) <= 7 then 1
-        else 0
-      end as weekly_newbie_flag,
-      up.total_orders_count,
-      wob.period_start,
-      wob.period_end,
-      wob.user_orders_cnt as mob_orders,
-    from
-      _base_data wob
-    left join
-      ${ref('fct__users__properties_snapshots')} up
-    on
-      wob.calculation_date > '2025-09-29'
-    and
-      wob.calculation_date = up._snapshot_date
-    and
-      wob.user_id = up.user_id
-    where
-      wob.aggregation_period = 'week'
-    
-  )
-
-  , _month_enriched_base as (
-    select
-      mob.calculation_date,
-      mob.user_id,
-      mob.active_user_flag,
-      mob.user_orders_cnt as orders_in_the_period,
-      up.last_filled_sa_amplitude_id,
-      up.filtered_last_filled_sa_amplitude_id,
-      up.last_device_operating_system,
-      up.filtered_last_device_operating_system,
-      up.last_media_source,
-      up.filtered_last_media_source,
-      up.last_active_city_id,
-      up.filtered_last_active_city_id,
-      up.last_active_warehouse_id,
-      up.filtered_last_active_warehouse_id,
-      case
-        when date_diff(mob.calculation_date, date(up.first_order_dt), day) <= 30 then 1
-        else 0
-      end as monthly_newbie_flag,
-      up.total_orders_count,
-      mob.period_start,
-      mob.period_end,
-      mob.user_orders_cnt as mob_orders,
-    from
-      _base_data mob
-    left join
-      ${ref('fct__users__properties_snapshots')} up
-    on
-      mob.calculation_date <= '2025-09-29'
-    and
-      up._snapshot_date = '2025-09-30'
-    and
-      mob.user_id = up.user_id
-    where
-      mob.aggregation_period = 'month'
-
-    union all
-
-    select
-      mob.calculation_date,
-      mob.user_id,
-      mob.active_user_flag,
-      mob.user_orders_cnt as orders_in_the_period,
-      up.last_filled_sa_amplitude_id,
-      up.filtered_last_filled_sa_amplitude_id,
-      up.last_device_operating_system,
-      up.filtered_last_device_operating_system,
-      up.last_media_source,
-      up.filtered_last_media_source,
-      up.last_active_city_id,
-      up.filtered_last_active_city_id,
-      up.last_active_warehouse_id,
-      up.filtered_last_active_warehouse_id,
-      case
-        when date_diff(mob.calculation_date, date(up.first_order_dt), day) <= 30 then 1
-        else 0
-      end as monthly_newbie_flag,
-      up.total_orders_count,
-      mob.period_start,
-      mob.period_end,
-      mob.user_orders_cnt as mob_orders,
-    from
-      _base_data mob
-    left join
-      ${ref('fct__users__properties_snapshots')} up
-    on
-      mob.calculation_date > '2025-09-29'
-    and
-      mob.calculation_date = up._snapshot_date
-    and
-      mob.user_id = up.user_id
-    where
-      mob.aggregation_period = 'month'
-  )
-
-  select
-    'month' as aggregation_period,
-    calculation_date,
-    period_start,
-    period_end,
-    monthly_newbie_flag as period_newbie_flag,
-    coalesce(filtered_last_device_operating_system, 'unknown') as filtered_last_device_operating_system,
-    coalesce(filtered_last_media_source, 'unknown') as filtered_last_media_source,
-    coalesce(filtered_last_active_city_id, 'unknown') as filtered_last_active_city_id,
-    coalesce(filtered_last_active_warehouse_id, 'unknown') as filtered_last_active_warehouse_id,
-    count(distinct user_id) as users_cnt,
-    sum(active_user_flag) as active_users_cnt,
-    sum(orders_in_the_period) as ttl_orders_in_the_period,
-    sum(case when active_user_flag = 1 then orders_in_the_period else 0 end) as active_orders_cnt,
-    sum(case when active_user_flag = 0 then orders_in_the_period else 0 end) as inactive_orders_cnt
-  from
-    _month_enriched_base
-  group by
-    1,2,3,4,5,6,7,8,9
-
-  union all
-
-  select
-    'week' as aggregation_period,
-    calculation_date,
-    period_start,
-    period_end,
-    weekly_newbie_flag as period_newbie_flag,
-    coalesce(filtered_last_device_operating_system, 'unknown') as filtered_laast_device_operating_system,
-    coalesce(filtered_last_media_source, 'unknown') as filtered_last_media_source,
-    coalesce(filtered_last_active_city_id, 'unknown') as filtered_last_active_city_id,
-    coalesce(filtered_last_active_warehouse_id, 'unknown') as filtered_last_active_warehouse_id,
-    count(distinct user_id) as users_cnt,
-    sum(active_user_flag) as active_users_cnt,
-    sum(orders_in_the_period) as ttl_orders_in_the_period,
-    sum(case when active_user_flag = 1 then orders_in_the_period else 0 end) as active_orders_cnt,
-    sum(case when active_user_flag = 0 then orders_in_the_period else 0 end) as inactive_orders_cnt
-  from
-    _week_enriched_base
-  group by
-    1,2,3,4,5,6,7,8,9

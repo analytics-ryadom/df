@@ -15,7 +15,7 @@ pre_operations {
 
   ${when(incremental(),
       `delete from ${self()} 
-       where _snapshot_date = current_date()`
+       where _snapshot_date = date_sub(current_date(), interval 1 day)`
   )}
 }
 

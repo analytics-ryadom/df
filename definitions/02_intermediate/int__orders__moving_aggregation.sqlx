@@ -35,7 +35,7 @@ ${when(incremental(),
       date_sub(calculation_date, interval 1 day) as month_end
     from
       unnest(
-        generate_date_array(date_sub(current_date(), interval 3 day), date_sub(current_date(), interval 1 day), interval 1 day)) as calculation_date
+        generate_date_array(date_sub(current_date(), interval 365 day), date_sub(current_date(), interval 1 day), interval 1 day)) as calculation_date
   )
 
   , _weekly_enriched_data as (
@@ -68,19 +68,19 @@ ${when(incremental(),
     left join
         ${ref('int__users__backend_properties_snapshots')} bp
     on
-      dr.calculation_date <= '2025-09-30'
+      dr.calculation_date <= '2025-10-01'
     and
       o.user_id = bp.user_id
     and
-      bp._snapshot_date = '2025-09-30'
+      bp._snapshot_date = '2025-10-01'
     left join
         ${ref('int__users__superapp_amplitude_properties_snapshots')} ap
     on
       o.user_id = ap.user_id
     and
-      ap._snapshot_date = '2025-09-30'
+      ap._snapshot_date = '2025-10-01'
     where
-      dr.calculation_date <= '2025-09-30'
+      dr.calculation_date <= '2025-10-01'
     group by
         dr.calculation_date,
         dr.week_start,
@@ -123,7 +123,7 @@ ${when(incremental(),
     left join
         ${ref('int__users__backend_properties_snapshots')} bp
     on
-      dr.calculation_date > '2025-09-30'
+      dr.calculation_date > '2025-10-01'
     and
       o.user_id = bp.user_id
     and
@@ -135,7 +135,7 @@ ${when(incremental(),
     and
       date(o.created_at) = ap._snapshot_date
     where
-      dr.calculation_date > '2025-09-30'
+      dr.calculation_date > '2025-10-01'
     group by
         dr.calculation_date,
         dr.week_start,
@@ -178,19 +178,19 @@ ${when(incremental(),
     left join
         ${ref('int__users__backend_properties_snapshots')} bp
     on
-      dr.calculation_date <= '2025-09-30'
+      dr.calculation_date <= '2025-10-01'
     and
       o.user_id = bp.user_id
     and
-      bp._snapshot_date = '2025-09-30'
+      bp._snapshot_date = '2025-10-01'
     left join
         ${ref('int__users__superapp_amplitude_properties_snapshots')} ap
     on
       o.user_id = ap.user_id
     and
-      ap._snapshot_date = '2025-09-30'
+      ap._snapshot_date = '2025-10-01'
     where
-      dr.calculation_date <= '2025-09-30'
+      dr.calculation_date <= '2025-10-01'
     group by
         dr.calculation_date,
         dr.month_start,
@@ -233,7 +233,7 @@ ${when(incremental(),
     left join
         ${ref('int__users__backend_properties_snapshots')} bp
     on
-      dr.calculation_date > '2025-09-30'
+      dr.calculation_date > '2025-10-01'
     and
       o.user_id = bp.user_id
     and
@@ -245,7 +245,7 @@ ${when(incremental(),
     and
       date(o.created_at) = ap._snapshot_date
     where
-      dr.calculation_date > '2025-09-30'
+      dr.calculation_date > '2025-10-01'
     group by
         dr.calculation_date,
         dr.month_start,
@@ -274,7 +274,7 @@ ${when(incremental(),
 ,
   
 `-- Full refrsh logic
-    with
+  with
   _date_range as (
     select
       calculation_date,
@@ -284,7 +284,7 @@ ${when(incremental(),
       date_sub(calculation_date, interval 1 day) as month_end
     from
       unnest(
-        generate_date_array(date_sub(current_date(), interval 180 day), date_sub(current_date(), interval 1 day), interval 1 day)) as calculation_date
+        generate_date_array(date_sub(current_date(), interval 60 day), date_sub(current_date(), interval 1 day), interval 1 day)) as calculation_date
   )
 
   , _weekly_enriched_data as (
@@ -317,19 +317,19 @@ ${when(incremental(),
     left join
         ${ref('int__users__backend_properties_snapshots')} bp
     on
-      dr.calculation_date <= '2025-09-30'
+      dr.calculation_date <= '2025-10-01'
     and
       o.user_id = bp.user_id
     and
-      bp._snapshot_date = '2025-09-30'
+      bp._snapshot_date = '2025-10-01'
     left join
         ${ref('int__users__superapp_amplitude_properties_snapshots')} ap
     on
       o.user_id = ap.user_id
     and
-      ap._snapshot_date = '2025-09-30'
+      ap._snapshot_date = '2025-10-01'
     where
-      dr.calculation_date <= '2025-09-30'
+      dr.calculation_date <= '2025-10-01'
     group by
         dr.calculation_date,
         dr.week_start,
@@ -372,7 +372,7 @@ ${when(incremental(),
     left join
         ${ref('int__users__backend_properties_snapshots')} bp
     on
-      dr.calculation_date > '2025-09-30'
+      dr.calculation_date > '2025-10-01'
     and
       o.user_id = bp.user_id
     and
@@ -384,7 +384,7 @@ ${when(incremental(),
     and
       date(o.created_at) = ap._snapshot_date
     where
-      dr.calculation_date > '2025-09-30'
+      dr.calculation_date > '2025-10-01'
     group by
         dr.calculation_date,
         dr.week_start,
@@ -427,19 +427,19 @@ ${when(incremental(),
     left join
         ${ref('int__users__backend_properties_snapshots')} bp
     on
-      dr.calculation_date <= '2025-09-30'
+      dr.calculation_date <= '2025-10-01'
     and
       o.user_id = bp.user_id
     and
-      bp._snapshot_date = '2025-09-30'
+      bp._snapshot_date = '2025-10-01'
     left join
         ${ref('int__users__superapp_amplitude_properties_snapshots')} ap
     on
       o.user_id = ap.user_id
     and
-      ap._snapshot_date = '2025-09-30'
+      ap._snapshot_date = '2025-10-01'
     where
-      dr.calculation_date <= '2025-09-30'
+      dr.calculation_date <= '2025-10-01'
     group by
         dr.calculation_date,
         dr.month_start,
@@ -482,7 +482,7 @@ ${when(incremental(),
     left join
         ${ref('int__users__backend_properties_snapshots')} bp
     on
-      dr.calculation_date > '2025-09-30'
+      dr.calculation_date > '2025-10-01'
     and
       o.user_id = bp.user_id
     and
@@ -494,7 +494,7 @@ ${when(incremental(),
     and
       date(o.created_at) = ap._snapshot_date
     where
-      dr.calculation_date > '2025-09-30'
+      dr.calculation_date > '2025-10-01'
     group by
         dr.calculation_date,
         dr.month_start,
@@ -518,6 +518,7 @@ ${when(incremental(),
     *
   from
     _monthly_enriched_data
+
 `
-)
+    )
 }
