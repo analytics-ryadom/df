@@ -1,0 +1,61 @@
+config {
+  type: 'incremental',
+  description: 'Daily int snapshots backend amplitude users properties',
+  schema: 'intermediate',
+  tags: ['users', 'intermediate', 'snapshot', 'backend'],
+  protected: true,
+  name: 'int__users__backend_properties_snapshots',
+  bigquery: {
+    partitionBy: '_snapshot_date',
+    clusterBy: ['user_id']
+  }, 
+}
+
+pre_operations {
+
+  ${when(incremental(),
+      `delete from ${self()} 
+       where _snapshot_date = date_sub(current_date(), interval 1 day)`
+  )}
+}
+
+with
+  _db_base_data as (
+    select
+      user_id,
+      created_at,
+      order_id,
+      date(first_value(created_at ignore nulls) over(partition by user_id order by created_at rows between unbounded preceding and unbounded following)) as first_order_dt,
+      date(last_value(created_at ignore nulls) over(partition by user_id order by created_at rows between unbounded preceding and unbounded following)) as last_order_dt,
+      last_value(warehouse_id ignore nulls) over(partition by user_id order by created_at rows between unbounded preceding and unbounded following) as last_active_warehouse_id,
+    --   last_value(polygon_id ignore nulls) over(partition by user_id order by created_at rows between unbounded preceding and unbounded following) as last_active_polygon_id,
+      price
+    from
+      ${ref('int_lavka_courier_orders')}
+  )
+
+select
+    date_sub(current_date(), interval 1 day) as _snapshot_date,
+
+    user_id,
+    first_order_dt,
+    last_order_dt,
+    count(distinct order_id)  as total_orders_count,
+    sum(price)                as user_gmv,
+    w.city_id                 as last_active_city_id,
+    last_active_warehouse_id,
+    -- last_active_polygon_id
+from
+    _db_base_data db
+left join
+    ${ref('warehouses')} w
+on
+    db.last_active_warehouse_id = w.id
+group by
+    user_id,
+    first_order_dt,
+    last_order_dt,
+    last_active_warehouse_id,
+    -- last_active_polygon_id,
+    w.city_id
+  
