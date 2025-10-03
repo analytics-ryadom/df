@@ -42,6 +42,9 @@ _orders_lavka as (
             paid_at is not null as paid_flg,
             price / 100 as price,
             created_at,
+            case when flat_number is not null
+                then (flat_number = '666')
+                else false end is_internal_order
     from ${ref('stg_lavka__orders_lavka')}
     where created_at >= timestamp_checkpoint
 )
