@@ -27,7 +27,11 @@ with _orders_cour as (
            warehouse_id,
            t1.address,
            t2.lat as wh_lat,
-           t2.long as wh_long
+           t2.long as wh_long,
+           t1.has_alcohol,
+           t1.has_coffee,
+           t1.has_tobacco,
+           t1.has_energy_drinks
     from ${ref('stg_courier__orders')} as t1
     join ${ref('stg_lavka__warehouses')} as t2
         on t1.warehouse_id = t2.id
