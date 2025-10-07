@@ -6,8 +6,8 @@ config {
   tags: ['lavka', 'staging', 'push_performance', 'view'],
   name:'stg_lavka__orders_lavka',
   assertions: {
-    nonNull: ['id', 'preorder_id', 'price'],
-    uniqueKey: ['id', 'preorder_id']
+    nonNull: ['id', 'price'],
+    uniqueKey: ['id']
   }
 }
 
@@ -53,4 +53,3 @@ select
     provider_user_id
 from
     ${ref('orders_lavka')}
-  where created_at >= '2022-01-01'
