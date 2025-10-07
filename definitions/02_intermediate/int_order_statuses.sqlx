@@ -15,7 +15,7 @@ pre_operations {
     DECLARE timestamp_checkpoint DEFAULT (
     ${when(incremental(),
     `SELECT timestamp(timestamp_sub(${dataform.projectConfig.vars.execution_date}, interval 3 day))`,
-    `SELECT timestamp("2023-01-01")`)}
+    `SELECT timestamp("2022-01-01")`)}
   )
   }
 
