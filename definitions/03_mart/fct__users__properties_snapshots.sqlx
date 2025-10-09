@@ -60,25 +60,12 @@ with
     order by 1
   )
 
-  -- ,   _db_base_data as (
-  --   select
-  --     user_id,
-  --     created_at,
-  --     order_id,
-  --     last_value(warehouse_id ignore nulls) over(partition by user_id order by created_at rows between unbounded preceding and unbounded following) as last_active_warehouse_id,
-  --     last_value(polygon_id ignore nulls) over(partition by user_id order by created_at rows between unbounded preceding and unbounded following) as last_active_polygon_id,
-  --     price
-  --   from
-  --     ${ref('int_orders')}
-  -- )
-
     ,   _db_base_data as (
     select
       lco.user_id,
       lco.created_at,
       lco.order_id,
       last_value(lco.warehouse_id ignore nulls) over(partition by lco.user_id order by lco.created_at rows between unbounded preceding and unbounded following) as last_active_warehouse_id,
-      last_value(cm.polygon_id ignore nulls) over(partition by lco.user_id order by lco.created_at rows between unbounded preceding and unbounded following) as last_active_polygon_id,
       price
     from ${ref('int_lavka_courier_orders')} as lco
     join ${ref('int_courier_motivations')} as cm 
@@ -93,8 +80,7 @@ with
       count(distinct order_id)  as total_orders_count,
       sum(price)                as user_gmv,
       w.city_id                 as last_active_city_id,
-      last_active_warehouse_id,
-      last_active_polygon_id,
+      last_active_warehouse_id
     from
       _db_base_data db
     left join
@@ -102,7 +88,7 @@ with
     on
       db.last_active_warehouse_id = w.id
     group by
-      user_id, last_active_warehouse_id, last_active_polygon_id, w.city_id
+      user_id, last_active_warehouse_id, w.city_id
   )
 
 select
@@ -132,7 +118,6 @@ select
     when db.last_active_warehouse_id is null then 'unknown'
     else safe_cast(db.last_active_warehouse_id as string)
   end as filtered_last_active_warehouse_id,
-  db.last_active_polygon_id,
   db.total_orders_count,
   db.user_gmv
 from
