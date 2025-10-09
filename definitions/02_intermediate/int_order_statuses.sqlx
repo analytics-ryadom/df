@@ -52,6 +52,8 @@ _order_stat as (
 _batches as (
     select o.order_id,
            b.id,
+           batch_type,
+           max_quantity,
            case when coalesce(o.batch_n, 1) = 2 then
                greatest(b.ready_time, ost.order_ready_for_delivery)
            else b.ready_time end as ready_time
@@ -80,6 +82,8 @@ select t1.order_id,
        t1.picker_id,
        t2.created_at,
        t3.ready_time as wait_batching,
+       t3.batch_type,
+       t3.max_quantity,
        order_received,
        picker_assigned,
        picker_collecting,
