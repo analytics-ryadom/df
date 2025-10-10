@@ -18,7 +18,10 @@ pre_operations {
     ${when(incremental(),
     `SELECT timestamp(timestamp_sub(${dataform.projectConfig.vars.execution_date}, interval 3 day))`,
     `SELECT timestamp(timestamp_sub(${dataform.projectConfig.vars.execution_date}, interval 3 month))`)}
-  )
+  );
+
+  delete from ${self()}
+  where po_created_at >= timestamp_checkpoint;
   }
 
 with 
