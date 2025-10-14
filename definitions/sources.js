@@ -120,6 +120,36 @@ declare({
 
 declare({
     database: "organic-reef-315010",
+    schema: "snp",
+    name: "lavka_order_status_history",
+  });
+
+declare({
+    database: "organic-reef-315010",
+    schema: "snp",
+    name: "lavka_cities",
+  });
+
+declare({
+    database: "organic-reef-315010",
+    schema: "snp",
+    name: "lavka_estimated_delivery_times",
+  });
+
+declare({
+    database: "organic-reef-315010",
+    schema: "snp",
+    name: "ryadom_identity_internal_external_user_links",
+  });
+
+declare({
+    database: "organic-reef-315010",
+    schema: "snp",
+    name: "ryadom_identity_external_providers",
+  });
+
+declare({
+    database: "organic-reef-315010",
     schema: "analytics",
     name: "rfm_28d_score",
   });
