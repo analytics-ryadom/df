@@ -1,0 +1,21 @@
+config {
+  type: 'view',
+  description: 'Staging for order status history',
+  schema: 'staging',
+  columns: table_docs.stg_lavka__order_status_history,
+  tags: ['lavka', 'staging', 'order', 'view'],
+  name:'stg_lavka__order_status_history',
+  assertions: {
+    nonNull: ['id'],
+    uniqueKey: ['id']
+  }
+}
+
+select
+    created_at,
+    id,
+    order_id,
+    status,
+    launch_id
+from
+    ${ref('lavka_order_status_history')}

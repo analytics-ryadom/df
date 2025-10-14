@@ -1,0 +1,25 @@
+config {
+    type: 'view',
+    description: 'Tables of delivery times',
+    schema: 'staging',
+    columns: table_docs.stg_lavka__estimated_delivery_times,
+    tags: ['lavka', 'staging', 'delivery', 'view'],
+    name:'stg_lavka__estimated_delivery_times',
+    assertions: {
+        nonNull: ['id', 'warehouse_id'],
+        uniqueKey: ['id']
+  }
+}
+
+select
+    created_at,
+    id,
+    preorder_id,
+    range_from,
+    range_to,
+    source_type,
+    launch_id,
+    surge_value,
+    polygon_id
+from
+    ${ref('lavka_estimated_delivery_times')}

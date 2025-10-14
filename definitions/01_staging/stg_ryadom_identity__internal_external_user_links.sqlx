@@ -1,0 +1,23 @@
+config {
+    type: 'view',
+    description: 'Tables of identity user links',
+    schema: 'staging',
+    columns: table_docs.stg_ryadom_identity__internal_external_user_links,
+    tags: ['lavka', 'staging', 'users', 'view'],
+    name:'stg_ryadom_identity__internal_external_user_links',
+    assertions: {
+        nonNull: ['id'],
+        uniqueKey: ['id']
+  }
+}
+
+select
+    created_at,
+    deleted_at,
+    external_provider_id,
+    external_user_id,
+    id,
+    internal_user_id,
+    launch_id 
+from
+    ${ref('ryadom_identity_internal_external_user_links')}

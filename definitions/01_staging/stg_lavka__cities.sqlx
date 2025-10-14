@@ -1,0 +1,21 @@
+config {
+    type: 'view',
+    description: 'Tables of cities',
+    schema: 'staging',
+    columns: table_docs.stg_lavka__cities,
+    tags: ['lavka', 'staging', 'cities', 'view'],
+    name:'stg_lavka__cities',
+    assertions: {
+        nonNull: ['id'],
+        uniqueKey: ['id']
+  }
+}
+
+select
+    created_at,
+    id,
+    name,
+    updated_at,
+    launch_id 
+from
+    ${ref('lavka_cities')}

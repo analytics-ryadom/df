@@ -161,6 +161,23 @@ const stg_lavka__preorders = {
 
 };
 
+const stg_lavka__order_status_history = {
+    created_at: "timestamp of status change",
+    id: "identificator of row",
+    order_id: "identificator of an order",
+    status: "status code",
+    launch_id: "id of the launch"
+    
+};
+
+const stg_lavka__cities = {
+    created_at: "timestamp of status change",
+    id: "identificator of row",
+    name: "Name of city",
+    updated_at: "update timestamp",
+    launch_id: "id of the launch"
+};
+
 /////////////////////////////// Courier ///////////////////////////////
 const stg_courier__courier_motivations = {
     amount: "Мoney for motivation",
@@ -319,6 +336,31 @@ const stg_lavka_surge__surge_logs = {
     warehouse_id: "The warehouse where this decision operates",
     launch_id: "Launch or version ID"
 
+};
+
+
+/////////////////////////////// ryadom_identity ///////////////////////////////
+const stg_ryadom_identity__internal_external_user_links = {
+    created_at: "Timestamp when the record was created",
+    deleted_at: "Timestamp when the record was deleted",
+    external_provider_id: "provider id",
+    external_user_id: "user id",
+    id: "Unique ID of row",
+    internal_user_id: "internal DB user id",
+    launch_id: "Launch or version ID"
+};
+
+const stg_ryadom_identity__external_providers = {
+    auth_url_template: "",
+    created_at: "",
+    id: "",
+    jwks_uri: "",
+    name: "",
+    pkce_enabled: "",
+    token_endpoint: "",
+    updated_at: "",
+    user_info_endpoint: "",
+    launch_id: ""
 }
 
 module.exports = {
@@ -334,7 +376,11 @@ module.exports = {
   stg_courier__order_status_history,
   stg_courier__batches,
   stg_courier__courier_batch_history,
-  stg_lavka_surge__surge_logs
+  stg_lavka_surge__surge_logs,
+  stg_lavka__order_status_history,
+  stg_lavka__cities,
+  stg_ryadom_identity__internal_external_user_links,
+  stg_ryadom_identity__external_providers
 };
 
 

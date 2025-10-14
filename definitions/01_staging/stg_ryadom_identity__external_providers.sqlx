@@ -1,0 +1,26 @@
+config {
+    type: 'view',
+    description: 'Tables of external providers',
+    schema: 'staging',
+    columns: table_docs.stg_ryadom_identity__external_providers,
+    tags: ['lavka', 'staging', 'providers', 'view'],
+    name:'stg_ryadom_identity__external_providers',
+    assertions: {
+        nonNull: ['id'],
+        uniqueKey: ['id']
+  }
+}
+
+select
+    auth_url_template,
+    created_at,
+    id,
+    jwks_uri,
+    name,
+    pkce_enabled,
+    token_endpoint,
+    updated_at,
+    user_info_endpoint,
+    launch_id
+from
+    ${ref('ryadom_identity_external_providers')}

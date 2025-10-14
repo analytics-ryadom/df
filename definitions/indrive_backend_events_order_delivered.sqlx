@@ -1,0 +1,77 @@
+config {
+  type: "incremental",
+  schema: 'indrive',
+  name: 'indrive__backend_events_order_delivered',
+  tags: ['aws', 'indrive', 'orders', 'incremental'],
+  bigquery: {
+    partitionBy: "timestamp_trunc(order_creation_time, day)",
+    updatePartitionFilter:
+        "order_creation_time >= timestamp_sub(current_timestamp(), interval 6 day)",
+    clusterBy: ["order_id"]
+  },
+  assertions: {
+    nonNull: ["order_id", "order_creation_time"],
+  },
+
+}
+
+pre_operations {
+    DECLARE timestamp_checkpoint DEFAULT (
+    ${when(incremental(),
+    `SELECT timestamp(timestamp_sub(${dataform.projectConfig.vars.execution_date}, interval 3 day))`,
+    `SELECT timestamp("2025-09-01")`)}
+  )
+  }
+
+
+with os as (
+  select 
+    order_id, 
+    status, 
+    created_at   
+  from ${ref('stg_lavka__order_status_history')} 
+  where created_at > timestamp_checkpoint 
+    and status in (7,8)
+  order by 1,3)
+
+
+select 
+  'food.backend.order_delivered' as name,
+  ul.external_user_id as user_id,
+  case when lc.name='Алматы' then 'Almaty'
+      when lc.name='Астана' then 'Astana'
+      else 'other'end as city_name,
+  'KZ' as county_code,
+  GENERATE_UUID() as event_id,
+  'KZT' as currency,
+  TIMESTAMP(FORMAT_TIMESTAMP("%Y-%m-%dT%H:%M:%SZ", d.created_at)) as actual_delivery_time,
+  TIMESTAMP(FORMAT_TIMESTAMP("%Y-%m-%dT%H:%M:%SZ", ol.created_at)) AS order_creation_time,
+  edt.range_from as min_promised_delivery_time,
+  edt.range_to as max_promised_delivery_time,
+  ol.products as delivered_products,
+  cast(ol.id as string) as order_id,
+  ol.payment_id as payment_id
+from ${ref('stg_lavka__orders_lavka')} ol 
+  join ${ref('stg_lavka__warehouses')} w on w.id = ol.warehouse_id
+  join ${ref('stg_lavka__cities')} lc on lc.id = w.city_id
+  join ${ref('stg_ryadom_identity__internal_external_user_links')} ul on ul.internal_user_id = ol.user_id
+  join ${ref('stg_ryadom_identity__external_providers')} ep on ep.id = ul.external_provider_id
+  
+  left join (
+              select 
+                order_id, 
+                created_at 
+              from os 
+              where status=7) as d on d.order_id = ol.id 
+  
+  left join ${ref('stg_lavka__estimated_delivery_times')} edt on edt.preorder_id = ol.preorder_id
+where payment_id is not null 
+  and ep.id=1
+  and ol.created_at > timestamp_checkpoint
+
+
+
+
+
+
+
