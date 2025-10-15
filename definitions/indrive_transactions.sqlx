@@ -47,6 +47,8 @@ select
   JSON_VALUE(raw_data, '$.sub_provider_identity') AS sub_provider_identity,
   JSON_VALUE(raw_data, '$.uuid') AS uuid,
   JSON_VALUE(raw_data, '$.vendor_name') AS vendor_name,
+  JSON_VALUE(raw_data, '$.amount_net') AS amount_net,
+  JSON_VALUE(raw_data, '$.refunded_amount') AS refunded_amount,
  JSON_VALUE(JSON_VALUE(raw_data, '$.jdoc')) as jdoc,
 -- Nested JSON field in 'jdoc'
 JSON_VALUE(JSON_VALUE(raw_data, '$.jdoc'), '$.with_saved_instrument') AS with_saved_instrument,
