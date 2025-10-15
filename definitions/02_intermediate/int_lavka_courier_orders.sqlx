@@ -12,13 +12,13 @@ config {
   
 }
 
-pre_operations {
+-- pre_operations {
     DECLARE timestamp_checkpoint DEFAULT (
     ${when(incremental(),
     `SELECT timestamp(timestamp_sub(${dataform.projectConfig.vars.execution_date}, interval 3 day))`,
     `SELECT timestamp("2022-01-01")`)}
-  )
-  }
+  );
+  -- }
 
 with _orders_cour as (
     select order_id,
@@ -39,20 +39,22 @@ with _orders_cour as (
     where t1.created_at >= timestamp_checkpoint
 ),
 _orders_lavka as (
-    select  id as order_id,
-            user_id,
-            lat as order_lat,
-            long as order_long,
-            paid_at,
-            paid_at is not null as paid_flg,
-            price / 100 as price,
-            created_at,
-            case when flat_number is not null
-                then (flat_number = '666') 
-                -- and (wh.address = ord.street)
+    select  t1.id as order_id,
+            t1.user_id,
+            t1.lat as order_lat,
+            t1.long as order_long,
+            t1.paid_at,
+            t1.paid_at is not null as paid_flg,
+            t1.price / 100 as price,
+            t1.created_at,
+            case when (t1.flat_number is not null) and (t2.address is Not null)
+                then (t1.flat_number = '666') 
+                and (t2.address = t1.street)
                 else false end is_internal_order
-    from ${ref('stg_lavka__orders_lavka')}
-    where created_at >= timestamp_checkpoint
+    from ${ref('stg_lavka__orders_lavka')} as t1
+    left join ${ref('stg_lavka__warehouses')} as t2
+      on t1.warehouse_id = t2.id
+    where t1.created_at >= timestamp_checkpoint
 )
 
     select  *,
