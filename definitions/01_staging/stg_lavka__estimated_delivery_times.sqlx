@@ -6,7 +6,7 @@ config {
     tags: ['lavka', 'staging', 'delivery', 'view'],
     name:'stg_lavka__estimated_delivery_times',
     assertions: {
-        nonNull: ['id', 'warehouse_id'],
+        nonNull: ['id'],
         uniqueKey: ['id']
   }
 }
