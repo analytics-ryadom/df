@@ -1,11 +1,9 @@
---TODO: transfer ETL to DataForm and change source for this matr
-
 config {
   type: 'incremental',
-  description: 'Mart for users counts moving between RFM scores',
+  description: 'Mart for users moving between RFM scores',
   schema: 'mart',
   tags: ['push_performance', 'mart', 'rfm'],
-  name: 'mart__rfm_sankey',
+  name: 'mart__rfm_user_flows',
   bigquery: {
     partitionBy: 'source_day',
     clusterBy: ['source_rfm', 'dest_rfm']
@@ -36,31 +34,22 @@ with sorted_snapshots as (
   where
     snapshot_day >= date_checkpoint
 )
-,
 
-paired_transitions as (
-  select
+select
     curr.snapshot_day       as  source_day,
     curr.user_id,
     curr.rfm_score          as source_rfm,
     next.rfm_score          as dest_rfm
-  from
-    sorted_snapshots curr
-  join
-    sorted_snapshots next
-  on
-    curr.user_id = next.user_id
-    and curr.rn + 1 = next.rn
-)
-
-select
-  source_day,
-  source_rfm,
-  dest_rfm,
-  count(distinct user_id)   as weight
 from
-  paired_transitions
-group by
-  source_day,
-  source_rfm,
-  dest_rfm
+    sorted_snapshots curr
+join
+    sorted_snapshots next
+on
+    curr.user_id = next.user_id
+and
+    curr.rn + 1 = next.rn
+where
+    curr.rfm_score != next.rfm_score
+
+
+
