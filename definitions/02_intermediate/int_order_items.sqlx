@@ -1,5 +1,6 @@
 config {
   type: 'incremental',
+  uniqueKey: ["order_id"],
   description: 'Orders items',
   schema: 'intermediate',
   tags: ['intermediate', 'orders', 'items'],

@@ -1,5 +1,6 @@
 config {
   type: 'incremental',
+  uniqueKey: ["order_id", "created_at"],
   description: 'A table wich joined orders from lavka and courier parts',
   schema: 'intermediate',
   tags: ['intermediate', 'orders', 'lavka', 'couriers'],

@@ -1,5 +1,6 @@
 config {
   type: 'incremental',
+  uniqueKey: ["order_id", "created_at", "warehouse_id"],
   description: 'Intermediate orders table ',
   schema: 'mart',
   tags: ['mart', 'orders'],
