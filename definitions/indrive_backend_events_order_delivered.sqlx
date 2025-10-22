@@ -34,7 +34,7 @@ with os as (
     status, 
     created_at   
   from ${ref('stg_lavka__order_status_history')} 
-  where created_at > timestamp_checkpoint 
+  where created_at >= timestamp_checkpoint 
     and status in (7,8)
   order by 1,3)
 
@@ -54,7 +54,9 @@ select
   edt.range_to as max_promised_delivery_time,
   ol.products as delivered_products,
   cast(ol.id as string) as order_id,
-  ol.payment_id as payment_id
+  ol.payment_id as payment_id,
+  p.promocode as promocode_name,
+  p.conditions as promocode_conditions
 from ${ref('stg_lavka__orders_lavka')} ol 
   join ${ref('stg_lavka__warehouses')} w on w.id = ol.warehouse_id
   join ${ref('stg_lavka__cities')} lc on lc.id = w.city_id
@@ -69,9 +71,10 @@ from ${ref('stg_lavka__orders_lavka')} ol
               where status=7) as d on d.order_id = ol.id 
   
   left join ${ref('stg_lavka__estimated_delivery_times')} edt on edt.preorder_id = ol.preorder_id
+  left join ${ref('stg_promo__promocodes')} p on p.id = ol.promocode_id 
 where payment_id is not null 
   and ep.id=1
-  and ol.created_at > timestamp_checkpoint
+  and ol.created_at >= timestamp_checkpoint
 
 
 
