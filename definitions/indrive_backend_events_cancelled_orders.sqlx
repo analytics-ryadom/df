@@ -23,8 +23,8 @@ pre_operations {
   )
   ;
 
-  -- delete from ${self()}
-  -- where order_creation_time >= timestamp_checkpoint;
+  delete from ${self()}
+  where order_creation_time >= timestamp_checkpoint;
   }
 
 
