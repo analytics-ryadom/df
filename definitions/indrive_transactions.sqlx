@@ -28,7 +28,7 @@ pre_operations {
   delete from ${self()}
   where created_at >= timestamp_checkpoint;
   }
-  }
+
 
 
 select

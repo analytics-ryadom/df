@@ -7,7 +7,7 @@ config {
   name: 'int_order_statuses',
   bigquery: {
     partitionBy: 'timestamp_trunc(created_at, day)',
-    updatePartitionFilter: 'event_time >= timestamp_sub(current_timestamp(), interval 7 day)',
+    updatePartitionFilter: 'created_at >= timestamp_sub(current_timestamp(), interval 7 day)',
     clusterBy: ['order_id']
   }, 
 }
