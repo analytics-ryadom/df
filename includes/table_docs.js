@@ -338,6 +338,30 @@ const stg_lavka_surge__surge_logs = {
 
 };
 
+/////////////////////////////// promo ///////////////////////////////
+const stg_promo__promocodes = {
+    activation_count : "Number of times the promo code has been used.",
+    activation_limit : "Maximum number of times the promo code can be used.",
+    conditions : "Conditions or terms associated with the promo code.",
+    created_at : "Timestamp indicating when the promo code was created.",
+    created_by : "Identifier of the user who created the promo code.",
+    deleted_at : "Timestamp indicating when the promo code was deleted.",
+    expired_at : "Timestamp indicating when the promo code expires.",
+    id : "Unique identifier for the promo code.",
+    is_active : "Boolean value indicating whether the promo code is currently active",
+    prefix : "Prefix associated with the promo code.",
+    promo_type : "Type of promotion associated with the code",
+    promoaction_id : "Identifier of the promotional action associated with the promo code",
+    promocode : "The actual promo code string",
+    recipient_id : "Identifier of the recipient associated with the promo code.",
+    referral_id : "Identifier of the referral associated with the promo code",
+    updated_at : "Timestamp indicating when the promo code was last updated.",
+    updated_by : "Identifier of the user who last updated the promo code.",
+    launch_id : "Identifier of the launch associated with the promo code.",
+    acquisition_channel_id : "Identifier of the acquisition channel associated with the promo code",
+    comment : "Additional notes or information about the promo code"
+
+};
 
 /////////////////////////////// ryadom_identity ///////////////////////////////
 const stg_ryadom_identity__internal_external_user_links = {
@@ -363,6 +387,9 @@ const stg_ryadom_identity__external_providers = {
     launch_id: ""
 }
 
+
+
+
 module.exports = {
   stg_lavka__warehouses,
   stg_lavka__order_items,
@@ -380,7 +407,8 @@ module.exports = {
   stg_lavka__order_status_history,
   stg_lavka__cities,
   stg_ryadom_identity__internal_external_user_links,
-  stg_ryadom_identity__external_providers
+  stg_ryadom_identity__external_providers,
+  stg_promo__promocodes
 };
 
 

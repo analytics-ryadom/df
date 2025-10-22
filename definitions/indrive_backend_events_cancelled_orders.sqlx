@@ -1,0 +1,222 @@
+config {
+  type: "incremental",
+  schema: 'indrive',
+  name: 'indrive__backend_events_cancelled_orders',
+  tags: ['aws', 'indrive', 'orders', 'incremental'],
+  bigquery: {
+    partitionBy: "timestamp_trunc(order_creation_time, day)",
+    updatePartitionFilter:
+        "order_creation_time >= timestamp_sub(current_timestamp(), interval 6 day)",
+    clusterBy: ["order_id"]
+  },
+  assertions: {
+    nonNull: ["order_id", "order_creation_time"],
+  },
+
+}
+
+pre_operations {
+    DECLARE timestamp_checkpoint DEFAULT (
+    ${when(incremental(),
+    `SELECT timestamp(timestamp_sub(${dataform.projectConfig.vars.execution_date}, interval 3 day))`,
+    `SELECT timestamp("2025-07-01")`)}
+  )
+  ;
+
+  delete from ${self()}
+  where order_creation_time >= timestamp_checkpoint;
+  }
+
+
+WITH
+  order_statuses AS (
+  SELECT
+    order_id,
+     MIN(CASE
+          WHEN status = 2 THEN created_at
+      END
+        ) AS ready_for_collecting_dttm,
+     MIN(CASE
+          WHEN status = 3 THEN created_at
+      END
+        ) AS collecting_dttm,
+    MIN(CASE
+          WHEN status = 4 THEN created_at
+      END
+        ) AS collected_dttm,
+    MIN(CASE
+          WHEN status = 5 THEN created_at
+      END
+        ) AS given_to_courier_dttm,
+    MIN(CASE
+          WHEN status = 6 THEN created_at
+      END
+        ) AS arrived_to_address_dttm,
+     MIN(CASE
+          WHEN status = 7 THEN created_at
+      END
+        ) AS delivered_dttm,
+     MIN(CASE
+          WHEN status = 8 THEN created_at
+      END
+        ) AS canceled_dttm,
+     MAX(CASE
+          WHEN status = 10 THEN created_at
+      END
+        ) AS finished_dttm
+  FROM
+    -- `organic-reef-315010`.`snp`.`lavka_order_status_history`
+    ${ref('stg_lavka__order_status_history')}
+  WHERE
+    created_at >= timestamp_checkpoint
+  GROUP BY
+    order_id
+  ORDER BY
+    order_id),
+
+
+  res AS (
+  SELECT
+    os.*,
+    ol.created_at AS created_dttm,
+    ol.status,
+    ol.cancel_reason,
+    SPLIT(ol.cancel_reason,':')[0] AS main_reason,
+    SPLIT(ol.cancel_reason,':')[1] AS additional_reason,
+    'food.backend.order_cancelled' AS name,
+    ul.external_user_id AS user_id,
+    CASE
+      WHEN lc.name='Алматы' THEN 'Almaty'
+      WHEN lc.name='Астана' THEN 'Astana'
+      ELSE 'other'END AS city_name,
+    'KZ' AS country_code,
+    GENERATE_UUID() AS event_id,
+    'KZT' AS currency,
+    TIMESTAMP(FORMAT_TIMESTAMP("%Y-%m-%dT%H:%M:%SZ", os.canceled_dttm )) AS actual_cancellation_time,
+    TIMESTAMP(FORMAT_TIMESTAMP("%Y-%m-%dT%H:%M:%SZ", ol.created_at)) AS order_creation_time,
+    edt.range_from AS min_promised_delivery_time,
+    edt.range_to AS max_promised_delivery_time,
+    ol.products AS cart, 
+    ol.payment_id AS payment_id,
+    p.promocode AS promocode_name,
+    p.conditions AS promocode_conditions
+  FROM
+    order_statuses os
+  JOIN
+    -- `organic-reef-315010.snp.orders_lavka` ol
+    ${ref('stg_lavka__orders_lavka')} ol
+  ON
+    ol.id =os.order_id
+  JOIN
+    -- `organic-reef-315010.snp.warehouses` w
+    ${ref('stg_lavka__warehouses')} w
+  ON
+    w.id = ol.warehouse_id
+  JOIN
+    -- `organic-reef-315010.snp.lavka_cities` lc
+    ${ref('stg_lavka__cities')} lc
+  ON
+    lc.id = w.city_id
+  JOIN
+    -- `organic-reef-315010.snp.ryadom_identity_internal_external_user_links` ul
+    ${ref('stg_ryadom_identity__internal_external_user_links')} ul
+  ON
+    ul.internal_user_id = ol.user_id
+  JOIN
+    -- `organic-reef-315010.snp.ryadom_identity_external_providers` ep
+    ${ref('stg_ryadom_identity__external_providers')} ep
+  ON
+    ep.id = ul.external_provider_id
+ 
+  LEFT JOIN
+    -- `organic-reef-315010.snp.lavka_estimated_delivery_times` edt
+    ${ref('stg_lavka__estimated_delivery_times')} edt
+  ON
+    edt.preorder_id = ol.preorder_id
+  LEFT JOIN
+    -- `organic-reef-315010.snp.promocodes` p
+    ${ref('stg_promo__promocodes')} p
+  ON
+    p.id = ol.promocode_id
+  WHERE
+    ep.id=1
+    AND ol.status=8
+    AND ol.created_at > timestamp_checkpoint
+    AND ol.payment_id IS NOT NULL
+  ORDER BY
+    ol.created_at ),
+  
+  inter AS (
+  SELECT
+    res.*,
+    CASE
+      WHEN main_reason = 'Антифрод' THEN 'antifraud'
+      WHEN res.main_reason ='Отмена клиентом'
+    AND additional_reason = ' Мой заказ долго собирают' THEN 'customer_long_waiting'
+      WHEN res.main_reason ='Отмена клиентом' AND additional_reason = ' Забыл(а) добавить товар' THEN 'customer_wrong_order'
+      WHEN res.main_reason ='Отмена клиентом'
+    AND additional_reason = ' Я указал(а) неверный адрес доставки' THEN 'customer_wrong_address'
+      WHEN main_reason IS NULL AND additional_reason IS NULL AND collecting_dttm IS NOT NULL AND delivered_dttm IS NULL AND canceled_dttm>collecting_dttm THEN 'store_unavailable' --
+      WHEN main_reason IS NULL
+    AND additional_reason IS NULL
+    AND canceled_dttm>delivered_dttm THEN ''
+      ELSE 'other'
+  END
+    AS cancel_reason_indrive
+  FROM res),
+
+  w_initiator AS (
+  SELECT
+    inter.*,
+    CASE
+      WHEN main_reason = 'Антифрод' THEN 'system'
+      WHEN cancel_reason_indrive = 'store_unavailable' THEN 'store'
+      WHEN main_reason = 'Отмена клиентом' OR main_reason IS NULL THEN 'customer'
+      ELSE 'other'
+  END
+    AS cancel_initiator
+  FROM inter ),
+
+  w_stage AS (
+  SELECT
+    wi.*,
+    CASE
+      WHEN cancel_reason_indrive = 'antifraud' OR collecting_dttm IS NULL THEN 'created'
+      WHEN collecting_dttm IS NOT NULL
+    AND collected_dttm IS NULL THEN 'collecting'
+      WHEN collected_dttm IS NOT NULL AND given_to_courier_dttm IS NULL THEN 'collected'
+      WHEN given_to_courier_dttm IS NOT NULL
+    AND arrived_to_address_dttm IS NULL THEN 'delivering'
+      WHEN delivered_dttm IS NOT NULL THEN 'delivered'
+      ELSE 'other'
+  END
+    AS cancel_stage
+  FROM
+    w_initiator wi )
+
+select 
+    name,
+    user_id,
+    city_name,
+    country_code,
+    event_id,
+    currency,
+    actual_cancellation_time , 
+    order_creation_time,   
+    min_promised_delivery_time , 
+    max_promised_delivery_time,
+    cancel_reason_indrive as cancel_reason,
+    cancel_stage,
+    cancel_initiator,
+    cart,
+    order_id,
+    payment_id,
+    promocode_name,
+    promocode_conditions 
+from w_stage
+
+
+
+
+
+
