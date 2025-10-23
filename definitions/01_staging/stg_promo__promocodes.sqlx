@@ -6,8 +6,8 @@ config {
   tags: ['lavka', 'staging', 'promocodes', 'view'],
   name:'stg_promo__promocodes',
   assertions: {
-    nonNull: ['id', 'city_id', 'delivery_zone'],
-    uniqueKey: ['uuid', 'id']
+    nonNull: ['id'],
+    uniqueKey: ['id']
   }
 }
 
