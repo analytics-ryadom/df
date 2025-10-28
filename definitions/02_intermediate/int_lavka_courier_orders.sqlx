@@ -51,7 +51,9 @@ _orders_lavka as (
             case when (t1.flat_number is not null) and (t2.address is Not null)
                 then (t1.flat_number = '666') 
                 and (t2.address = t1.street)
-                else false end is_internal_order
+                else false end is_internal_order,
+            
+            case when t1.payment_id is null then "choco" else "indrive" end as platform
     from ${ref('stg_lavka__orders_lavka')} as t1
     left join ${ref('stg_lavka__warehouses')} as t2
       on t1.warehouse_id = t2.id
