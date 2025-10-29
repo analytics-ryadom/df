@@ -27,7 +27,7 @@ with _orders as (
            picker_id,
            courier_id,
            count(*) over (partition by batch_id) as n,
-           ROW_NUMBER() over (partition by batch_id order by created_at) as batch_n
+           ROW_NUMBER() over (partition by batch_id order by courier_motivation_time) as batch_n
     from ${ref('stg_courier__orders')}
     where created_at >= timestamp_checkpoint
 ),

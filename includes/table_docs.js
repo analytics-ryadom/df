@@ -294,6 +294,16 @@ const stg_courier__order_status_history = {
 
 };
 
+const stg_courier__order_assignment  = {
+    assigned_by: "Who's assignment by",
+    created_at: "Timestamp of the status change",
+    employee_id: "ID of the employee Who's assignment by",
+    id: "Unique history record ID",
+    order_id: "order id",
+    type: "Picker or courier",
+    launch_id: "Launch or configuration ID under which the status change was recorded"
+};
+
 const stg_courier__batches = {
     batch_type: "Type of batch",
     created_at: "Timestamp when the batch was created",
@@ -403,6 +413,7 @@ module.exports = {
   stg_courier__order_status_history,
   stg_courier__batches,
   stg_courier__courier_batch_history,
+  stg_courier__order_assignment,
   stg_lavka_surge__surge_logs,
   stg_lavka__order_status_history,
   stg_lavka__cities,

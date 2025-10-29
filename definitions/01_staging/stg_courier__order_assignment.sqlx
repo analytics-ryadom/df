@@ -1,0 +1,24 @@
+config {
+  type: 'view',
+  description: 'The table of order assignment',
+  schema: 'staging',
+  columns: table_docs.stg_courier__order_assignment,
+  tags: ['courier', 'staging', 'orders', 'picker','view'],
+  name:'stg_courier__order_assignment',
+  assertions: {
+    nonNull: ['id'],
+    uniqueKey: ['id']
+  }
+}
+
+
+select
+  assigned_by,
+  created_at,
+  employee_id,
+  id,
+  order_id,
+  type,
+  launch_id 
+from
+    ${ref('order_assignment')}
