@@ -26,9 +26,6 @@ select order_id,
         t1.employee_rate_id,
         got_bonus,
         polygon_id,
-        -- surge_bonus,
-        -- surge_coefficient,
-        -- t1.amount as money_bonus,
         t1.amount,
         t1.paid_amount,
         t1.rider_coefficient,
@@ -38,7 +35,7 @@ select order_id,
         to_eta,
         cast(json_extract(t1.polygon_data, '$.regular.eta') as int)
             + coalesce(cast(json_extract(t1.polygon_data, '$.rain.eta') as int), 0) as eta,
-        -- rider_coefficient as rider_x_coefficient
+
     from (
         select *
         from ${ref('stg_courier__courier_motivations')}
