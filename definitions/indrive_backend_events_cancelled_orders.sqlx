@@ -96,7 +96,8 @@ WITH
     TIMESTAMP(FORMAT_TIMESTAMP("%Y-%m-%dT%H:%M:%SZ", ol.created_at)) AS order_creation_time,
     edt.range_from AS min_promised_delivery_time,
     edt.range_to AS max_promised_delivery_time,
-    ol.products AS cart, 
+    -- ol.products AS cart,
+    PARSE_JSON(ol.products) AS cart, 
     ol.payment_id AS payment_id,
     p.promocode AS promocode_name,
     p.conditions AS promocode_conditions
