@@ -32,6 +32,48 @@ const stg_lavka__warehouses = {
    launch_id: "Identifier for the launch associated with the warehouse"
   };
 
+const stg_lavka__products = {
+    analytical_category_id: "ID of the analytical category to which the product belongs.",
+    brand_id: "	The identifier of the brand under which the product is produced.",
+    country: "country",
+    created_at: "The date and time when the record was created in the table.",
+    created_by: "The ID of the user who created the record.",
+    daily_max_quantity: "",
+    degree_level: "",
+    degree_value: "",
+    depth: "",
+    full_description: "Full text description of the product.",
+    full_description_kk: "Full description of the product in Kazakh.",
+    has_brand: "Indicates whether the product has a brand (true — there is a brand).",
+    height: "The height of the product packaging (in centimeters).",
+    id: "The internal unique identifier of the product.",
+    is_active: "Indicates that the product is active (true — available for sale).",
+    is_sample: "Whether the product is a sample or a test copy.",
+    keywords: "Keywords related to the product",
+    keywords_kk: "Keywords in the Kazakh language.",
+    labels: "",
+    max_quantity: "",
+    name: "The main product name.",
+    name_kk: "The product name is in Kazakh.",
+    name_origin: "Original name (e.g., in native language).",
+    name_short: "Short name.",
+    name_short_kk: "Short name in Kazakh",
+    one_day_sale: "One-day sale flag.",
+    sort_weight: "",
+    type_uuid: "Product type UUID.",
+    updated_at: "Last update timestamp.",
+    updated_by: "ID of the user who last updated the record",
+    uuid: "Globally unique product UUID",
+    weight: "Product weight in grams",
+    weight_visible: "",
+    width: "Width of packaging (in cm).",
+    wine_color: "Wine color (e.g., red, white)",
+    wine_sugar_content: "Wine sugar content (e.g., dry, semi-sweet)",
+    launch_id: "",
+    is_promo: "Indicates if product is on promotion.",
+    is_coffee: "Indicates if the product is coffee"
+  };
+
 const stg_lavka__order_items = {
     created_at: "Timestamp when the item was added to the order",
     feature_id: "Feature ID (e.g., variation like flavor/type)",

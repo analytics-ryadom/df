@@ -157,6 +157,12 @@ declare({
 declare({
     database: "organic-reef-315010",
     schema: "snp",
+    name: "products",
+  });
+
+declare({
+    database: "organic-reef-315010",
+    schema: "snp",
     name: "order_assignment",
   });
 

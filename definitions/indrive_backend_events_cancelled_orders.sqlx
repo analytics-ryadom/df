@@ -65,7 +65,6 @@ WITH
       END
         ) AS finished_dttm
   FROM
-    -- `organic-reef-315010`.`snp`.`lavka_order_status_history`
     ${ref('stg_lavka__order_status_history')}
   WHERE
     created_at >= timestamp_checkpoint
@@ -96,49 +95,20 @@ WITH
     TIMESTAMP(FORMAT_TIMESTAMP("%Y-%m-%dT%H:%M:%SZ", ol.created_at)) AS order_creation_time,
     edt.range_from AS min_promised_delivery_time,
     edt.range_to AS max_promised_delivery_time,
-    -- ol.products AS cart,
-    PARSE_JSON(ol.products) AS cart, 
+    oc.order_details_json as cart,
     ol.payment_id AS payment_id,
     p.promocode AS promocode_name,
-    p.conditions AS promocode_conditions
+    PARSE_JSON(p.conditions) AS promocode_conditions
   FROM
     order_statuses os
-  JOIN
-    -- `organic-reef-315010.snp.orders_lavka` ol
-    ${ref('stg_lavka__orders_lavka')} ol
-  ON
-    ol.id =os.order_id
-  JOIN
-    -- `organic-reef-315010.snp.warehouses` w
-    ${ref('stg_lavka__warehouses')} w
-  ON
-    w.id = ol.warehouse_id
-  JOIN
-    -- `organic-reef-315010.snp.lavka_cities` lc
-    ${ref('stg_lavka__cities')} lc
-  ON
-    lc.id = w.city_id
-  JOIN
-    -- `organic-reef-315010.snp.ryadom_identity_internal_external_user_links` ul
-    ${ref('stg_ryadom_identity__internal_external_user_links')} ul
-  ON
-    ul.internal_user_id = ol.user_id
-  JOIN
-    -- `organic-reef-315010.snp.ryadom_identity_external_providers` ep
-    ${ref('stg_ryadom_identity__external_providers')} ep
-  ON
-    ep.id = ul.external_provider_id
- 
-  LEFT JOIN
-    -- `organic-reef-315010.snp.lavka_estimated_delivery_times` edt
-    ${ref('stg_lavka__estimated_delivery_times')} edt
-  ON
-    edt.preorder_id = ol.preorder_id
-  LEFT JOIN
-    -- `organic-reef-315010.snp.promocodes` p
-    ${ref('stg_promo__promocodes')} p
-  ON
-    p.id = ol.promocode_id
+  JOIN ${ref('stg_lavka__orders_lavka')} ol ON ol.id =os.order_id
+  join ${ref('int_orders_cart')} oc on oc.order_id = ol.id
+  JOIN ${ref('stg_lavka__warehouses')} w ON w.id = ol.warehouse_id
+  JOIN ${ref('stg_lavka__cities')} lc ON lc.id = w.city_id
+  JOIN ${ref('stg_ryadom_identity__internal_external_user_links')} ul ON ul.internal_user_id = ol.user_id
+  JOIN ${ref('stg_ryadom_identity__external_providers')} ep ON ep.id = ul.external_provider_id
+  LEFT JOIN ${ref('stg_lavka__estimated_delivery_times')} edt ON edt.preorder_id = ol.preorder_id
+  LEFT JOIN ${ref('stg_promo__promocodes')} p ON p.id = ol.promocode_id
   WHERE
     ep.id=1
     AND ol.status=8
@@ -213,7 +183,7 @@ select
     order_id,
     payment_id,
     promocode_name,
-    promocode_conditions 
+    promocode_conditions
 from w_stage
 
 

@@ -20,7 +20,8 @@ pre_operations {
     ${when(incremental(),
     `SELECT timestamp(timestamp_sub(${dataform.projectConfig.vars.execution_date}, interval 3 day))`,
     `SELECT timestamp("2025-07-01")`)}
-  );
+  )
+;
 
   delete from ${self()}
   where order_creation_time >= timestamp_checkpoint;
@@ -52,13 +53,13 @@ select
   TIMESTAMP(FORMAT_TIMESTAMP("%Y-%m-%dT%H:%M:%SZ", ol.created_at)) AS order_creation_time,
   edt.range_from as min_promised_delivery_time,
   edt.range_to as max_promised_delivery_time,
-  -- ol.products as delivered_products,
-  PARSE_JSON(ol.products) as delivered_products,
+  oc.order_details_json as delivered_products,
   cast(ol.id as string) as order_id,
   ol.payment_id as payment_id,
   p.promocode as promocode_name,
-  p.conditions as promocode_conditions
+  PARSE_JSON(p.conditions) as promocode_conditions
 from ${ref('stg_lavka__orders_lavka')} ol 
+  join ${ref('int_orders_cart')} oc on oc.order_id = ol.id
   join ${ref('stg_lavka__warehouses')} w on w.id = ol.warehouse_id
   join ${ref('stg_lavka__cities')} lc on lc.id = w.city_id
   join ${ref('stg_ryadom_identity__internal_external_user_links')} ul on ul.internal_user_id = ol.user_id

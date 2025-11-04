@@ -1,0 +1,90 @@
+config {
+  type: 'incremental',
+  uniqueKey: ["order_id"],
+  description: 'Orders cart, parsed from json',
+  schema: 'intermediate',
+  tags: ['intermediate', 'orders', 'items'],
+  name: 'int_orders_cart',
+  bigquery: {
+    partitionBy: 'timestamp_trunc(created_at, day)',
+    updatePartitionFilter: 'created_at >= timestamp_sub(current_timestamp(), interval 7 day)',
+    clusterBy: ['order_id']
+  },
+}
+
+pre_operations {
+    DECLARE timestamp_checkpoint DEFAULT (
+    ${when(incremental(),
+    `SELECT timestamp(timestamp_sub(${dataform.projectConfig.vars.execution_date}, interval 3 day))`,
+    `SELECT timestamp("2025-07-01")`)}
+  );
+
+  CREATE TEMP FUNCTION EXTRACT_KV_PAIRS(json_str STRING)
+  RETURNS ARRAY<STRUCT<key STRING, value STRING>>
+  LANGUAGE js AS """
+    try {
+      const json_dict = JSON.parse(json_str);
+      const all_kv = Object.entries(json_dict).map(
+        (r) => Object.fromEntries([["key", r[0]], ["value", JSON.stringify(r[1])]])
+      );
+      return all_kv;
+    } catch(e) {
+      return [{"key": "error", "value": e.toString()}];
+    }
+  """
+  }
+
+
+with ord_products as(
+
+SELECT
+  t1.id as order_id,
+  t1.created_at,
+  JSON_VALUE(kv_pair.value, '$.name') AS name,
+  JSON_VALUE(kv_pair.value, '$.quantity') AS quantity,
+
+ from ${ref('stg_lavka__orders_lavka')} AS t1,
+  UNNEST(EXTRACT_KV_PAIRS(t1.products)) AS kv_pair
+  
+WHERE TIMESTAMP_TRUNC(t1.created_at, DAY) >= timestamp_checkpoint
+
+),
+
+t1 as(
+  select
+  op.created_at, 
+  op.name,
+  op.order_id,
+  p.name as product_name,
+  Sum(CAST(op.quantity AS INT64)) AS quantity,
+  oi.original_price,
+  oi.price,
+  oi.product_id as id,
+ 
+from ord_products op
+join ${ref('stg_lavka__products')} as p on p.name = op.name
+join ${ref('stg_lavka__order_items')} as oi on oi.order_id = op.order_id and oi.product_id = p.id
+GROUP By created_at, name, order_id, product_name, original_price, price, id
+order by op.created_at
+)
+
+SELECT
+  orders.created_at,
+  orders.order_id AS order_id,
+--   ARRAY_AGG( TO_JSON( STRUCT(orders.name,
+--         orders.id,
+--         orders.price,
+--         orders.original_price,
+--         orders.quantity))) AS order_details_json
+
+    ARRAY_AGG( STRUCT(orders.name,
+                    orders.id,
+                    orders.price,
+                    orders.original_price,
+                    orders.quantity)) AS order_details_json
+    
+FROM
+  t1 AS orders
+GROUP BY
+  orders.order_id, orders.created_at
+
