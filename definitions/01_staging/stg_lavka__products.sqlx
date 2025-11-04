@@ -1,0 +1,55 @@
+config {
+    type: 'view',
+    description: 'Tables of products',
+    schema: 'staging',
+    columns: table_docs.stg_lavka__products,
+    tags: ['lavka', 'staging', 'products', 'view'],
+    name:'stg_lavka__products',
+    assertions: {
+        nonNull: ['id'],
+        uniqueKey: ['id']
+  }
+}
+
+select
+    analytical_category_id,
+    brand_id,
+    country,
+    created_at,
+    created_by,
+    daily_max_quantity,
+    degree_level,
+    degree_value,
+    depth,
+    full_description,
+    full_description_kk,
+    has_brand,
+    height,
+    id,
+    is_active,
+    is_sample,
+    keywords,
+    keywords_kk,
+    labels,
+    max_quantity,
+    name,
+    name_kk,
+    name_origin,
+    name_short,
+    name_short_kk,
+    one_day_sale,
+    sort_weight,
+    type_uuid,
+    updated_at,
+    updated_by,
+    uuid,
+    weight,
+    weight_visible,
+    width,
+    wine_color,
+    wine_sugar_content,
+    launch_id,
+    is_promo,
+    is_coffee
+from
+    ${ref('products')}
