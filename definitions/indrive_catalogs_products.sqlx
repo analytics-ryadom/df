@@ -1,0 +1,50 @@
+config {
+  type: "view",
+  schema: 'indrive',
+  name: 'indrive__catalogs_products',
+  tags: ['aws', 'indrive', 'products', 'catalog'],
+  assertions: {
+    nonNull: ["id", "name"],
+  },
+
+}
+
+
+select 
+  analytical_category_id,
+  brand_id,
+  country,
+  created_at,
+  daily_max_quantity,
+  degree_level,
+  degree_value,
+  depth,
+  full_description,
+  full_description_kk,
+  has_brand,
+  height,
+  id,
+  is_active,
+  is_sample,
+  keywords,
+  keywords_kk,
+  labels,
+  max_quantity,
+  name,
+  name_kk,
+  name_origin,
+  name_short,
+  name_short_kk,
+  one_day_sale,
+  sort_weight,
+  type_uuid,
+  uuid,
+  weight,
+  weight_visible,
+  width,
+  wine_color,
+  wine_sugar_content,
+  is_promo,
+  is_coffee
+
+from ${ref('stg_lavka__products')} 

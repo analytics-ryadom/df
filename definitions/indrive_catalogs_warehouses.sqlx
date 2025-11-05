@@ -1,0 +1,43 @@
+config {
+  type: "view",
+  schema: 'indrive',
+  name: 'indrive__catalogs_warehouses',
+  tags: ['aws', 'indrive', 'warehouses', 'catalog'],
+  assertions: {
+    nonNull: ["id", "name"],
+  },
+
+}
+
+
+select 
+  w.address,
+  w.city_id,
+  c.name as city_name,
+  w.closes_at,
+  w.created_at,
+  w.delivery_time,
+  PARSE_JSON(w.delivery_zone, wide_number_mode=>'round') as delivery_zone,
+  w.delivery_zone_geo,
+  w.delivery_zone_multi_geo,
+  w.force_min_amount,
+  w.geo_wkt,
+  w.has_internship,
+  w.id,
+  w.is_active,
+  w.is_functioning,
+  w.lat,
+  w.long,
+  w.min_amount,
+  w.name,
+  w.opens_at,
+  w.products_quantity,
+  w.uuid,
+  PARSE_JSON(w.night_delivery_zone, wide_number_mode=>'round') as night_delivery_zone,
+  w.night_delivery_zone_multi_geo,
+  w.night_delivery_starts_at,
+  w.night_delivery_ends_at,
+
+from ${ref('stg_lavka__warehouses')} w
+left join ${ref('stg_lavka__cities')} c on w.city_id = c.id
+  

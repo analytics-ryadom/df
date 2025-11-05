@@ -28,7 +28,6 @@ pre_operations {
   }
 
 
-
 with os as (
   select 
     order_id, 
