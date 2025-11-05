@@ -41,6 +41,10 @@ select
     updated_at,
     updated_by,
     uuid,
-    launch_id
+    launch_id,
+    night_delivery_zone,
+  night_delivery_zone_multi_geo,
+  night_delivery_starts_at,
+  night_delivery_ends_at,
 from
     ${ref('warehouses')}
