@@ -114,9 +114,11 @@ with
         and
           lower(event_type) not like '%[amplitude]%'
         and
-          lower(event_type) not like 'session_start'
+          lower(event_type) != 'session_start'
         and
-          lower(event_type) not like 'session_end'
+          lower(event_type) != 'session_end'
+        and
+          lower(event_type) != 'app_load_done'
         and
           lower(json_extract_scalar(event_properties, '$.currentApp')) like "miniapp"
         )
