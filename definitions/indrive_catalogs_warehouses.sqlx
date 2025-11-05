@@ -1,5 +1,5 @@
 config {
-  type: "table",
+  type: "view",
   schema: 'indrive',
   name: 'indrive__catalogs_warehouses',
   tags: ['aws', 'indrive', 'warehouses', 'catalog'],
@@ -8,10 +8,6 @@ config {
   },
 
 }
-
-pre_operations {
-  DROP TABLE IF EXISTS ${self()}
-  }
 
 
 select 
