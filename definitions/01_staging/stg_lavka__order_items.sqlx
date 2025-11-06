@@ -31,6 +31,7 @@ select
     supplier_price,
     supplier_product_id,
     launch_id,
-    promo_source
+    promo_source,
+    promo_source_id
 from
     ${ref('order_items')}
