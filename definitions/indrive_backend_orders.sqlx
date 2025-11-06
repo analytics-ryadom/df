@@ -1,0 +1,124 @@
+config {
+  type: "incremental",
+  uniqueKey: ["order_id", "created_at"],
+  schema: 'indrive',
+  name: 'indrive__backend_orders',
+  tags: ['aws', 'indrive', 'orders', 'incremental'],
+  bigquery: {
+    partitionBy: "timestamp_trunc(created_at, day)",
+    updatePartitionFilter:
+        "created_at >= timestamp_sub(current_timestamp(), interval 3 day)",
+    clusterBy: ["order_id"]
+  },
+  assertions: {
+    nonNull: ["order_id", "created_at"],
+  },
+
+}
+
+pre_operations {
+    DECLARE timestamp_checkpoint DEFAULT (
+    ${when(incremental(),
+    `SELECT timestamp(timestamp_sub(${dataform.projectConfig.vars.execution_date}, interval 3 day))`,
+    `SELECT timestamp("2025-07-01")`)}
+  )
+  ;
+ 
+ ${when(incremental(),
+      `delete from ${self()} 
+       where created_at >= timestamp_checkpoint`
+  )}
+
+  }
+
+with 
+items as (
+Select
+    it.order_id,
+     ARRAY_AGG( STRUCT(it.is_available,
+                                it.mark,
+                                it.price,
+                                it.original_price,
+                                it.product_id,
+                                pr.name as product_name,
+                                it.reason,
+                                it.reason_type,
+                                it.refund_id,
+                                it.return_request_id,
+                                it.scanned_at,
+                                it.status,
+                                it.supplier_price,
+                                it.supplier_product_id,
+                                it.promo_source,
+                                it.promo_source_id                           
+                            
+                            )) AS order_items,
+
+from  ${ref('stg_lavka__order_items')} as it 
+        join ${ref('stg_lavka__products')} as pr
+        on it.product_id = pr.id
+WHERE TIMESTAMP_TRUNC(it.created_at, DAY) >= timestamp_checkpoint
+GROUP BY order_id
+
+)
+
+select
+    ol.address,
+    ol.address_comment,
+    ol.auto_finish_at,
+    ol.batch_id,
+    ol.building,
+    ol.cell,
+    ol.client_id,
+    ol.client_latitude,
+    ol.client_longitude,
+    ol.code,
+    ol.comment_for_courier,
+    ol.comment_for_picker,
+    ol.courier_id,
+    ol.courier_motivation_amount,
+    ol.courier_motivation_time,
+    ol.created_at,
+    ol.delivered_time,
+    ol.delivery_time_prediction,
+    ol.distance_to_warehouse,
+    ol.entrance,
+    ol.flat,
+    ol.floor,
+    ol.has_alcohol,
+    ol.has_coffee,
+    ol.has_tobacco,
+    ol.id as order_id,
+    ol.is_distant,
+    ol.leave_at_the_door,
+    ol.less_packages,
+    ol.min_amount,
+    ol.order_id as courier_order_id,
+    it.order_items,
+    ol.payment_method,
+    ol.picker_assigned_at,
+    ol.price,
+    ol.status,
+    ol.status_updated_at,
+    ol.street_name,
+    ol.version,
+    ol.volume,
+    ol.warehouse_address,
+    ol.warehouse_id,
+    ol.warehouse_latitude,
+    ol.warehouse_longitude,
+    ol.weight,
+    ol.has_energy_drinks,
+    ol.distance_to_warehouse_by_bicycle
+
+from ${ref('stg_courier__orders')} as ol
+    join items as it  on ol.id = it.order_id
+WHERE TIMESTAMP_TRUNC(ol.created_at, DAY) >= timestamp_checkpoint
+    
+
+
+
+
+
+
+
