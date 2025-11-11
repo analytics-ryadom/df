@@ -112,7 +112,7 @@ select
     ol.distance_to_warehouse_by_bicycle
 
 from ${ref('stg_courier__orders')} as ol
-    join items as it  on ol.id = it.order_id
+    join items as it  on ol.order_id = it.order_id
 WHERE TIMESTAMP_TRUNC(ol.created_at, DAY) >= timestamp_checkpoint
     
 
