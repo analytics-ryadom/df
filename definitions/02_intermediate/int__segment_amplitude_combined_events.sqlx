@@ -1,0 +1,607 @@
+config {
+  type: 'incremental',
+  description: 'Intermediate table combining Segment and Amplitude events',
+  schema: 'intermediate',
+  tags: ['amplitude', 'intermediate', 'combining', 'segment'],
+  name: 'int__segment_amplitude_combined_events',
+  bigquery: {
+    partitionBy: 'timestamp_trunc(timestamp, day)',
+    updatePartitionFilter: 'timestamp >= timestamp_sub(current_timestamp(), interval 48 hour)',
+    clusterBy: ['user_id', 'event']
+  }
+}
+
+pre_operations {
+  declare timestamp_checkpoint timestamp; 
+  set timestamp_checkpoint = (
+    ${when(incremental(),
+    `ifnull(
+      (
+        select timestamp_trunc(timestamp_sub(max(timestamp), interval 24 hour), day)
+        from ${self()} 
+      ), 
+      timestamp("2025-11-13")
+    )`,
+    `timestamp("2025-11-13")`)
+    }
+  );
+  
+  ${when(incremental(),
+      `delete from ${self()} where timestamp >= timestamp_checkpoint`
+      )}
+}
+
+${when(incremental(),
+    `with
+        _historical_segment_events as (
+          select
+            *
+          from
+            ${ref('stg_segment__events_history')}
+          where
+            date(timestamp) between date_sub('2025-11-13', interval 7 day) and '2025-11-13'
+        )
+
+        , _amplitude_base as (
+        select
+          event_id      as id
+        , device_id     as anonymous_id
+        , user_id       as user_id
+        , event_type    as event
+        , timestamp_add(event_time, interval 5 hour) as timestamp
+        , session_id as session_id
+        , 'Main Screen' as screen_name
+        , array(
+                select struct ('latitude' as name, cast(location_lat as string) as value) union all
+                select struct ('longitude' as name, cast(location_lng as string) as value) union all
+                select struct ('context_campaign_medium' as name, cast(json_value(user_properties, '$.initial_utm_medium') as string) as value) union all
+                select struct ('context_campaign_name' as name, cast(json_value(user_properties, '$.initial_utm_campaign') as string) as value) union all
+                select struct ('context_campaign_source' as name, cast(json_value(user_properties, '$.initial_utm_source') as string) as value) union all
+                select struct ('context_campaign_term' as name, cast(json_value(user_properties, '$.initial_utm_term') as string) as value) union all 
+                select struct ('orders_count' as name, cast(json_value(user_properties, '$.ordersCount') as string) as value)
+            ) as data
+        , event_properties
+        , ip_address
+        , language
+        from
+          ${ref('EVENTS_296820')}
+        where 1=1
+        and
+            event_time between timestamp_checkpoint and  
+            date_trunc(current_timestamp(), day)
+        and
+            event_type = 'viewed_main_page'
+
+        union all
+
+        select
+          event_id      as id
+        , device_id     as anonymous_id
+        , user_id       as user_id
+        , event_type    as event
+        , timestamp_add(event_time, interval 5 hour)    as timestamp
+        , session_id as session_id
+        , json_value(event_properties, '$.screenName') as screen_name
+        , array(
+                select struct ('category_id' as name, cast(json_value(event_properties, '$.categoryId') as string) as value) union all
+                select struct ('subcategory_id' as name, 'undefined' as value) union all
+                select struct ('latitude' as name, cast(location_lat as string) as value) union all
+                select struct ('longitude' as name, cast(location_lng as string) as value) union all
+                select struct ('orders_count' as name, cast(json_value(user_properties, '$.ordersCount') as string) as value)
+            ) as data
+
+        , event_properties
+        , ip_address
+        , language
+        from
+          ${ref('EVENTS_296820')}
+        where 1=1
+        and
+            event_time between timestamp_checkpoint and  
+            date_trunc(current_timestamp(), day)
+        and
+            event_type = 'category_selected'
+
+        union all
+
+        select
+          event_id      as id
+        , device_id     as anonymous_id
+        , user_id       as user_id
+        , event_type    as event
+        , timestamp_add(event_time, interval 5 hour)    as timestamp
+        , session_id as session_id
+        , json_value(event_properties, '$.screenName') as screen_name
+        , array(
+                    select struct ('category_id' as name, array_reverse(split(json_extract_scalar(event_properties, "$['currentPage.path']"), '/'))[safe_offset(0)] as value) union all
+                    select struct ('subcategory_id' as name, to_json_string(json_extract_array(event_properties, '$.category_ids')) as value) union all
+                    select struct ('brand_id' as name, to_json_string(json_extract_array(event_properties, '$.brand_ids')) as value) union all
+                    select struct ('latitude' as name, cast(location_lat as string) as value) union all
+                    select struct ('longitude' as name, cast(location_lng as string) as value) union all
+                    select struct ('warehouse_id' as name, cast(json_value(event_properties, '$.warehouseId') as string) as value) union all 
+                    select struct ('orders_count' as name, cast(json_value(user_properties, '$.ordersCount') as string) as value)
+                ) as data
+        , event_properties
+        , ip_address
+        , language
+        from
+          ${ref('EVENTS_296820')}
+        where 1=1
+        and
+            event_time between timestamp_checkpoint and  
+            date_trunc(current_timestamp(), day)
+        and
+            event_type = 'viewed_subcategory'
+
+        union all
+
+        select
+          event_id      as id
+        , device_id     as anonymous_id
+        , user_id       as user_id
+        , event_type    as event
+        , timestamp_add(event_time, interval 5 hour)    as timestamp
+        , session_id as session_id
+        , json_value(event_properties, '$.screenName') as screen_name
+        , array(
+                select struct ('product_id' as name, cast(json_value(event_properties, '$.product_id') as string) as value) union all
+                select struct ('latitude' as name, cast(location_lat as string) as value) union all
+                select struct ('longitude' as name, cast(location_lng as string) as value) union all
+                select struct ('orders_count' as name, cast(json_value(user_properties, '$.ordersCount') as string) as value)
+            ) as data
+        , event_properties
+        , ip_address
+        , language
+        from
+          ${ref('EVENTS_296820')}
+        where 1=1
+        and
+            event_time between timestamp_checkpoint and  
+            date_trunc(current_timestamp(), day)
+        and
+            event_type = 'product_added'
+
+        union all
+
+        select
+          event_id      as id
+        , device_id     as anonymous_id
+        , user_id       as user_id
+        , event_type    as event
+        , timestamp_add(event_time, interval 5 hour)    as timestamp
+        , session_id as session_id
+        , 'Payout Screen' as screen_name
+        , array(
+                select struct ('preorder_id' as name, cast(json_value(event_properties, '$.preorderId') as string) as value) union all
+                select struct ('latitude' as name, cast(location_lat as string) as value) union all
+                select struct ('longitude' as name, cast(location_lng as string) as value) union all
+                select struct ('orders_count' as name, cast(json_value(user_properties, '$.ordersCount') as string) as value)
+            ) as data
+        , event_properties
+        , ip_address
+        , language
+        from
+          ${ref('EVENTS_296820')}
+        where 1=1
+        and
+            event_time between timestamp_checkpoint and  
+            date_trunc(current_timestamp(), day)
+        and
+            event_type = 'started_payment'
+
+        union all
+
+        select
+          event_id      as id
+        , device_id     as anonymous_id
+        , user_id       as user_id
+        , event_type    as event
+        , timestamp_add(event_time, interval 5 hour)    as timestamp
+        , session_id as session_id
+        , 'Cart Page' as screen_name
+        , array(
+                select struct ('latitude' as name, cast(location_lat as string) as value) union all
+                select struct ('longitude' as name, cast(location_lng as string) as value) union all
+                select struct ('orders_count' as name, cast(json_value(user_properties, '$.ordersCount') as string) as value)
+            ) as data
+        , event_properties
+        , ip_address
+        , language
+        from
+          ${ref('EVENTS_296820')}
+        where 1=1
+        and
+            event_time between timestamp_checkpoint and  
+            date_trunc(current_timestamp(), day)
+        and
+            event_type = 'go_to_cart'
+    )
+
+    , _custom_sessions_count as (
+        select
+            *
+        , sum(if(dur is null or dur > 1800, 1, 0)) over (partition by anonymous_id order by timestamp) as ryadom_session_num
+        from
+        (
+            select
+            *
+            , timestamp_diff(
+                timestamp,
+                lag(timestamp) over(partition by anonymous_id order by timestamp),
+                second
+            ) as dur
+            from
+            _amplitude_base
+        )
+
+    )
+
+    , _custom_session_ids as (
+        select
+            *
+            , first_value(timestamp) over(partition by anonymous_id, ryadom_session_num order by timestamp) as session_start_ts
+        from
+            _custom_sessions_count
+        )
+
+    , _pre_final as (
+        select
+          safe_cast(id as string) as id
+        , safe_cast(anonymous_id as string) as anonymous_id
+        , safe_cast(user_id as string) as user_id
+        , event
+        , timestamp
+        , safe_cast(session_id as string) as session_id
+        , to_base64(sha1(anonymous_id || session_start_ts)) as ryadom_session_id
+        , screen_name
+        , data
+        , safe_cast(ip_address as string) as context_ip
+        , language as context_locale
+        , json_value(event_properties, '$.user_agent') as user_agent
+        , json_value(event_properties, '$.currentApp') as current_app
+        , case
+            when lower(json_value(event_properties, '$.user_agent')) like '%android%' then 'Android'
+            when lower(json_value(event_properties, '$.user_agent')) like '%iphone%' or lower(json_value(event_properties, '$.user_agent')) like '%ios%' then 'iOS'
+            else 'Unknown'
+          end as device_type
+        , safe_cast(json_value(event_properties, '$.warehouseId') as int64) as warehouse_id
+        from
+        _custom_session_ids
+    )
+
+        , _amplitude_transformed_events as (
+        select
+            id
+            , anonymous_id
+            , user_id
+            , case
+                when event = 'viewed_main_page' then 'view_main_page'
+                when event = 'category_selected' then 'click_category'
+                when event = 'viewed_subcategory' then 'filter_product_list'
+                when event = 'started_payment' then 'click_payout'
+                when event = 'go_to_cart' then 'click_cart'
+                else event
+              end as event
+            , timestamp
+            , session_id
+            , ryadom_session_id
+            , screen_name
+            , data
+            , context_ip
+            , context_locale
+            , user_agent
+            , current_app
+            , device_type as platform
+            , warehouse_id
+            , to_base64(sha1(ryadom_session_id || warehouse_id)) as warehouse_session_id
+            , safe_cast(null as boolean) as is_default
+        from
+            _pre_final
+
+        )
+
+        select
+            *
+        from
+            _historical_segment_events
+        
+        union all
+
+        select
+            *
+        from
+            _amplitude_transformed_events`
+
+    ,
+
+
+
+
+
+
+
+    ` -- FULL REFRESH: 
+        with
+        _historical_segment_events as (
+          select
+            *
+          from
+            ${ref('stg_segment__events_history')}
+          where
+            date(timestamp) between date_sub('2025-11-13', interval 7 day) and '2025-11-13'
+        )
+
+        , _amplitude_base as (
+        select
+          event_id      as id
+        , device_id     as anonymous_id
+        , user_id       as user_id
+        , event_type    as event
+        , timestamp_add(event_time, interval 5 hour) as timestamp
+        , session_id as session_id
+        , 'Main Screen' as screen_name
+        , array(
+                select struct ('latitude' as name, cast(location_lat as string) as value) union all
+                select struct ('longitude' as name, cast(location_lng as string) as value) union all
+                select struct ('context_campaign_medium' as name, cast(json_value(user_properties, '$.initial_utm_medium') as string) as value) union all
+                select struct ('context_campaign_name' as name, cast(json_value(user_properties, '$.initial_utm_campaign') as string) as value) union all
+                select struct ('context_campaign_source' as name, cast(json_value(user_properties, '$.initial_utm_source') as string) as value) union all
+                select struct ('context_campaign_term' as name, cast(json_value(user_properties, '$.initial_utm_term') as string) as value) union all 
+                select struct ('orders_count' as name, cast(json_value(user_properties, '$.ordersCount') as string) as value)
+            ) as data
+        , event_properties
+        , ip_address
+        , language
+        from
+          ${ref('EVENTS_296820')}
+        where 1=1
+        and
+            date(event_time) between "2025-11-13" and
+            date(date_trunc(current_timestamp(), day))
+        and
+            event_type = 'viewed_main_page'
+
+        union all
+
+        select
+          event_id      as id
+        , device_id     as anonymous_id
+        , user_id       as user_id
+        , event_type    as event
+        , timestamp_add(event_time, interval 5 hour)    as timestamp
+        , session_id as session_id
+        , json_value(event_properties, '$.screenName') as screen_name
+        , array(
+                select struct ('category_id' as name, cast(json_value(event_properties, '$.categoryId') as string) as value) union all
+                select struct ('subcategory_id' as name, 'undefined' as value) union all
+                select struct ('latitude' as name, cast(location_lat as string) as value) union all
+                select struct ('longitude' as name, cast(location_lng as string) as value) union all
+                select struct ('orders_count' as name, cast(json_value(user_properties, '$.ordersCount') as string) as value)
+            ) as data
+
+        , event_properties
+        , ip_address
+        , language
+        from
+          ${ref('EVENTS_296820')}
+        where 1=1
+        and
+            date(event_time) between "2025-11-13" and
+            date(date_trunc(current_timestamp(), day))
+        and
+            event_type = 'category_selected'
+
+        union all
+
+        select
+          event_id      as id
+        , device_id     as anonymous_id
+        , user_id       as user_id
+        , event_type    as event
+        , timestamp_add(event_time, interval 5 hour)    as timestamp
+        , session_id as session_id
+        , json_value(event_properties, '$.screenName') as screen_name
+        , array(
+                    select struct ('category_id' as name, array_reverse(split(json_extract_scalar(event_properties, "$['currentPage.path']"), '/'))[safe_offset(0)] as value) union all
+                    select struct ('subcategory_id' as name, to_json_string(json_extract_array(event_properties, '$.category_ids')) as value) union all
+                    select struct ('brand_id' as name, to_json_string(json_extract_array(event_properties, '$.brand_ids')) as value) union all
+                    select struct ('latitude' as name, cast(location_lat as string) as value) union all
+                    select struct ('longitude' as name, cast(location_lng as string) as value) union all
+                    select struct ('warehouse_id' as name, cast(json_value(event_properties, '$.warehouseId') as string) as value) union all 
+                    select struct ('orders_count' as name, cast(json_value(user_properties, '$.ordersCount') as string) as value)
+                ) as data
+        , event_properties
+        , ip_address
+        , language
+        from
+          ${ref('EVENTS_296820')}
+        where 1=1
+        and
+            date(event_time) between "2025-11-13" and
+            date(date_trunc(current_timestamp(), day))
+        and
+            event_type = 'viewed_subcategory'
+
+        union all
+
+        select
+          event_id      as id
+        , device_id     as anonymous_id
+        , user_id       as user_id
+        , event_type    as event
+        , timestamp_add(event_time, interval 5 hour)    as timestamp
+        , session_id as session_id
+        , json_value(event_properties, '$.screenName') as screen_name
+        , array(
+                select struct ('product_id' as name, cast(json_value(event_properties, '$.product_id') as string) as value) union all
+                select struct ('latitude' as name, cast(location_lat as string) as value) union all
+                select struct ('longitude' as name, cast(location_lng as string) as value) union all
+                select struct ('orders_count' as name, cast(json_value(user_properties, '$.ordersCount') as string) as value)
+            ) as data
+        , event_properties
+        , ip_address
+        , language
+        from
+          ${ref('EVENTS_296820')}
+        where 1=1
+        and
+            date(event_time) between "2025-11-13" and
+            date(date_trunc(current_timestamp(), day))
+        and
+            event_type = 'product_added'
+
+        union all
+
+        select
+          event_id      as id
+        , device_id     as anonymous_id
+        , user_id       as user_id
+        , event_type    as event
+        , timestamp_add(event_time, interval 5 hour)    as timestamp
+        , session_id as session_id
+        , 'Payout Screen' as screen_name
+        , array(
+                select struct ('preorder_id' as name, cast(json_value(event_properties, '$.preorderId') as string) as value) union all
+                select struct ('latitude' as name, cast(location_lat as string) as value) union all
+                select struct ('longitude' as name, cast(location_lng as string) as value) union all
+                select struct ('orders_count' as name, cast(json_value(user_properties, '$.ordersCount') as string) as value)
+            ) as data
+        , event_properties
+        , ip_address
+        , language
+        from
+          ${ref('EVENTS_296820')}
+        where 1=1
+        and
+            date(event_time) between "2025-11-13" and
+            date(date_trunc(current_timestamp(), day))
+        and
+            event_type = 'started_payment'
+
+        union all
+
+        select
+          event_id      as id
+        , device_id     as anonymous_id
+        , user_id       as user_id
+        , event_type    as event
+        , timestamp_add(event_time, interval 5 hour)    as timestamp
+        , session_id as session_id
+        , 'Cart Page' as screen_name
+        , array(
+                select struct ('latitude' as name, cast(location_lat as string) as value) union all
+                select struct ('longitude' as name, cast(location_lng as string) as value) union all
+                select struct ('orders_count' as name, cast(json_value(user_properties, '$.ordersCount') as string) as value)
+            ) as data
+        , event_properties
+        , ip_address
+        , language
+        from
+          ${ref('EVENTS_296820')}
+        where 1=1
+        and
+            date(event_time) between "2025-11-13" and
+            date(date_trunc(current_timestamp(), day))
+        and
+            event_type = 'go_to_cart'
+    )
+
+    , _custom_sessions_count as (
+        select
+            *
+        , sum(if(dur is null or dur > 1800, 1, 0)) over (partition by anonymous_id order by timestamp) as ryadom_session_num
+        from
+        (
+            select
+            *
+            , timestamp_diff(
+                timestamp,
+                lag(timestamp) over(partition by anonymous_id order by timestamp),
+                second
+            ) as dur
+            from
+            _amplitude_base
+        )
+
+    )
+
+    , _custom_session_ids as (
+        select
+            *
+            , first_value(timestamp) over(partition by anonymous_id, ryadom_session_num order by timestamp) as session_start_ts
+        from
+            _custom_sessions_count
+        )
+
+    , _pre_final as (
+        select
+          safe_cast(id as string) as id
+        , safe_cast(anonymous_id as string) as anonymous_id
+        , safe_cast(user_id as string) as user_id
+        , event
+        , timestamp
+        , safe_cast(session_id as string) as session_id
+        , to_base64(sha1(anonymous_id || session_start_ts)) as ryadom_session_id
+        , screen_name
+        , data
+        , safe_cast(ip_address as string) as context_ip
+        , language as context_locale
+        , json_value(event_properties, '$.user_agent') as user_agent
+        , json_value(event_properties, '$.currentApp') as current_app
+        , case
+            when lower(json_value(event_properties, '$.user_agent')) like '%android%' then 'Android'
+            when lower(json_value(event_properties, '$.user_agent')) like '%iphone%' or lower(json_value(event_properties, '$.user_agent')) like '%ios%' then 'iOS'
+            else 'Unknown'
+          end as device_type
+        , safe_cast(json_value(event_properties, '$.warehouseId') as int64) as warehouse_id
+        from
+        _custom_session_ids
+    )
+
+        , _amplitude_transformed_events as (
+        select
+            id
+            , anonymous_id
+            , user_id
+            , case
+                when event = 'viewed_main_page' then 'view_main_page'
+                when event = 'category_selected' then 'click_category'
+                when event = 'viewed_subcategory' then 'filter_product_list'
+                when event = 'started_payment' then 'click_payout'
+                when event = 'go_to_cart' then 'click_cart'
+                else event
+              end as event
+            , timestamp
+            , session_id
+            , ryadom_session_id
+            , screen_name
+            , data
+            , context_ip
+            , context_locale
+            , user_agent
+            , current_app
+            , device_type as platform
+            , warehouse_id
+            , to_base64(sha1(ryadom_session_id || warehouse_id)) as warehouse_session_id
+            , safe_cast(null as boolean) as is_default
+        from
+            _pre_final
+
+        )
+
+        select
+            *
+        from
+            _historical_segment_events
+        
+        union all
+
+        select
+            *
+        from
+            _amplitude_transformed_events`
+    )
+}
+        
+
+
