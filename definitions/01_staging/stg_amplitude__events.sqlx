@@ -7,90 +7,16 @@ config {
   name:'stg_amplitude__events',
 }
 
-pre_operations {
- declare timestamp_checkpoint timestamp; 
- 
- set timestamp_checkpoint = (
-   ${when(incremental(),
-   `select timestamp_sub(timestamp_trunc(
-     coalesce(
-       max(case when event_time <= current_timestamp() then event_time end),
-       current_timestamp()
-     ), day), interval 1 day) 
-   from ${self()} 
-   limit 1`,
-   `timestamp("2025-11-12")`)
-   }
- );
-  
-}
-
-with
-  base_miniapp_data as (
-    select
-      adid,
-      amplitude_attribution_ids,
-      amplitude_event_type,
-      safe_cast(amplitude_id as string) as amplitude_id,
-      user_properties,
-      event_properties,
-      event_time,
-      event_type,
-      safe_cast(session_id as string) as session_id,
-      app,
-      city,
-      client_event_time,
-      client_upload_time,
-      country,
-      `data`,
-      device_brand,
-      device_carrier,
-      device_family,
-      device_id,
-      device_manufacturer,
-      device_model,
-      device_type,
-      dma,
-      event_id,
-      followed_an_identify,
-      group_properties,
-      `groups`,
-      idfa,
-      ip_address,
-      is_attribution_event,
-      language,
-      library,
-      location_lat,
-      location_lng,
-      os_name,
-      os_version,
-      paying,
-      platform,
-      processed_time,
-      region,
-      sample_rate,
-      server_received_time,
-      server_upload_time,
-      start_version,
-      user_creation_time,
-      user_id,
-      uuid,
-      version_name
-    from
-      ${ref('EVENTS_296820')}
-    where
-      event_time >= timestamp_checkpoint
-    qualify
-      row_number() over(partition by uuid) = 1
-  )
-
 select
-    amplitude_id,
+    adid,
+    amplitude_attribution_ids,
+    amplitude_event_type,
+    safe_cast(amplitude_id as string) as amplitude_id,
     user_properties,
     event_properties,
     event_time,
     event_type,
-    session_id,
+    safe_cast(session_id as string) as session_id,
     app,
     city,
     client_event_time,
@@ -125,11 +51,11 @@ select
     sample_rate,
     server_received_time,
     server_upload_time,
-    session_id,
     start_version,
     user_creation_time,
     user_id,
     uuid,
     version_name
 from
-    base_miniapp_data
+    ${ref('EVENTS_296820')}
+
