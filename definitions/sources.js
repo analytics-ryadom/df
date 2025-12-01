@@ -172,4 +172,10 @@ declare({
     name: "rfm_28d_score",
   });
 
+declare({
+    database: "organic-reef-315010",
+    schema: "snp",
+    name: "segment_events",
+  });
+
   

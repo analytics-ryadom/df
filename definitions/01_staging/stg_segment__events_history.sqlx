@@ -1,0 +1,14 @@
+config {
+  type: 'view',
+  description: 'Getting historical Segment events',
+  schema: 'staging',
+  columns: table_docs.stg_courier__orders,
+  tags: ['segment', 'staging'],
+  name:'stg_segment__events_history',
+}
+
+
+select
+  *
+from
+  ${ref('segment_events')}
