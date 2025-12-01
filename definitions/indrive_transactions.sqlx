@@ -4,9 +4,9 @@ config {
   name: 'indrive_transactions',
   tags: ['aws', 'indrive', 'transactions', 'incremental'],
   bigquery: {
-    partitionBy: "timestamp_trunc(created_at, day)",
+    partitionBy: "timestamp_trunc(modified_at, day)",
     updatePartitionFilter:
-        "created_at >= timestamp_sub(current_timestamp(), interval 6 day)",
+        "modified_at >= timestamp_sub(current_timestamp(), interval 6 day)",
     clusterBy: ["uuid"]
   },
   assertions: {
@@ -19,16 +19,30 @@ config {
 }
 
 pre_operations {
-    DECLARE timestamp_checkpoint DEFAULT (
+    DECLARE timestamp_raw DEFAULT (
     ${when(incremental(),
-    `SELECT timestamp(timestamp_sub(${dataform.projectConfig.vars.execution_date}, interval 3 day))`,
+    `SELECT timestamp_trunc(TIMESTAMP(${dataform.projectConfig.vars.execution_date}), day)`,
     `SELECT timestamp("2025-05-01")`)}
   );
 
-  delete from ${self()}
-  where created_at >= timestamp_checkpoint;
-  }
+  DECLARE timestamp_transaction DEFAULT (
+    ${when(incremental(),
+    `SELECT timestamp(timestamp_sub(TIMESTAMP(${dataform.projectConfig.vars.execution_date}), interval 1 day))`,
+    `SELECT timestamp("2025-05-01")`)}
+  );
 
+   ${when(incremental(),
+      
+      `delete from ${self()} 
+       where TIMESTAMP_TRUNC(modified_at, DAY) = timestamp_transaction`,
+
+       `delete from ${self()} 
+       where TIMESTAMP_TRUNC(modified_at, DAY) >= timestamp_transaction`
+       
+  )}
+
+
+  }
 
 
 select
@@ -42,7 +56,7 @@ select
   JSON_VALUE(raw_data, '$.is_auto_topup') AS is_auto_topup,
   JSON_VALUE(raw_data, '$.merchant_id') AS merchant_id,
   JSON_VALUE(raw_data, '$.method_name') AS method_name,
-  JSON_VALUE(raw_data, '$.modified_at') AS modified_at,
+  timestamp(JSON_VALUE(raw_data, '$.modified_at')) AS modified_at,
   JSON_VALUE(raw_data, '$.provider_identity') AS provider_identity,
   JSON_VALUE(raw_data, '$.provider_method_code') AS provider_method_code,
   JSON_VALUE(raw_data, '$.provider_name') AS provider_name,
@@ -58,7 +72,8 @@ select
 JSON_VALUE(JSON_VALUE(raw_data, '$.jdoc'), '$.with_saved_instrument') AS with_saved_instrument,
 JSON_VALUE(JSON_VALUE(raw_data, '$.jdoc'), '$.pay_date') AS pay_date
 from ${ref('stg_aws_indrive__financial_metrics-transactions')} 
-where created_at > timestamp_checkpoint
+
+${when(incremental(), "where TIMESTAMP_TRUNC(created_at, DAY) = timestamp_raw")}
 
 
 
