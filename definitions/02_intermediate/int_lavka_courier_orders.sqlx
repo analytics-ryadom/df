@@ -48,6 +48,7 @@ _orders_lavka as (
             t1.paid_at is not null as paid_flg,
             t1.price / 100 as price,
             t1.created_at,
+            t1.preorder_id,
             case when (t1.flat_number is not null) and (t2.address is Not null)
                 then (t1.flat_number = '666') 
                 and (t2.address = t1.street)
@@ -57,7 +58,7 @@ _orders_lavka as (
     from ${ref('stg_lavka__orders_lavka')} as t1
     left join ${ref('stg_lavka__warehouses')} as t2
       on t1.warehouse_id = t2.id
-    where t1.created_at >= timestamp_checkpoint
+    where t1.created_at >= timestamp_checkpoint 
 )
 
     select  *,
