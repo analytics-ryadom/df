@@ -23,6 +23,7 @@ pre_operations {
 
 
 select  t1.order_id,
+        t1.preorder_id,
         t1.batch_id,
         t1.warehouse_id,
         t3.batch_n,
