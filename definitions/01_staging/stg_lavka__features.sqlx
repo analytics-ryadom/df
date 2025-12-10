@@ -1,0 +1,23 @@
+config {
+    type: 'view',
+    description: 'Tables of product features',
+    schema: 'staging',
+    columns: table_docs.stg_lavka__features,
+    tags: ['lavka', 'staging', 'products', 'features', 'view'],
+    name:'stg_lavka__features',
+    assertions: {
+        nonNull: ['id'],
+        uniqueKey: ['id']
+  }
+}
+
+select
+    created_at,
+    id,
+    name,
+    type_uuid,
+    uuid,
+    weight,
+    launch_id 
+from
+    ${ref('features')}

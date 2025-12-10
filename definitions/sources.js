@@ -163,7 +163,31 @@ declare({
 declare({
     database: "organic-reef-315010",
     schema: "snp",
+    name: "brands",
+  });
+
+declare({
+    database: "organic-reef-315010",
+    schema: "snp",
+    name: "product_images",
+  });
+
+declare({
+    database: "organic-reef-315010",
+    schema: "snp",
     name: "order_assignment",
+  });
+
+declare({
+    database: "organic-reef-315010",
+    schema: "snp",
+    name: "warehouse_products",
+  });
+
+declare({
+    database: "organic-reef-315010",
+    schema: "snp",
+    name: "features",
   });
 
 declare({

@@ -32,6 +32,29 @@ const stg_lavka__warehouses = {
    launch_id: "Identifier for the launch associated with the warehouse"
   };
 
+const stg_lavka__warehouse_products = {
+    created_at: "Timestamp when the item was added to the order",
+    created_by: "ID of the user who create the record",
+    feature_id: "Feature ID (e.g., variation like flavor/type)",
+    features_quantity: "Quantity of features associated with the product",
+    fixed_quantity: "Fixed quantity of the product available",
+    fixed_quantity_at: "Timestamp indicating when the fixed quantity was set",
+    id: "Unique identifier for row",
+    is_active: "Boolean value indicating whether the product is currently active",
+    is_default: "Boolean value indicating whether the product is the default option",
+    old_price: "Previous price of the product",
+    price: "Price of the product",
+    product_id: "Unique identifier for the product",
+    promo_id: "Unique identifier for the promotion applied to the product",
+    quantity: "Current quantity of the product in the warehouse",
+    supplier_price: "Price of the product from the supplier",
+    updated_at: "Timestamp indicating when the record was last updated",
+    updated_by: "User ID of the user who last updated the record",
+    warehouse_id: "Unique identifier for the warehouse",
+    launch_id: "Identifier for the launch associated with the warehouse"     
+
+};
+
 const stg_lavka__products = {
     analytical_category_id: "ID of the analytical category to which the product belongs.",
     brand_id: "	The identifier of the brand under which the product is produced.",
@@ -122,6 +145,39 @@ const stg_lavka__additional_products = {
     updated_at: "Timestamp when this row was updated",
     uuid: "Universally unique identifier for the Additional product (1C feature)",
     launch_id: "Launch or version ID"
+
+};
+
+const stg_lavka__brands = {
+    created_at: "Timestamp when this row added to table",
+    created_by: "An id who this row created",
+    id: "Unique record ID",
+    is_active: "Indicates whether the ones is currently active",
+    name: "A Name of brand",
+    slug: "A part of path in url",
+    updated_at: "Timestamp when this row was updated",
+    updated_by: "An id who this row updated",
+    launch_id: "Launch or version ID"
+};
+
+const stg_lavka__product_images ={
+    created_at: "Timestamp when this row added to table",
+    id: "Unique record ID",
+    path: "The path in url",
+    product_id: "Product id of this image",
+    sort_weight: "Sort & weight",
+    launch_id: "Launch or version ID"    
+
+};
+
+const stg_lavka__features = {
+    created_at: "Timestamp when this row added to table",
+    id: "Unique record ID",
+    name: "A Name of featute",
+    type_uuid: "",
+    uuid: "1C uinque identifyer",
+    weight: "A weight",
+    launch_id: "Launch or version ID"   
 
 };
 
@@ -444,11 +500,19 @@ const stg_ryadom_identity__external_providers = {
 
 module.exports = {
   stg_lavka__warehouses,
+  stg_lavka__warehouse_products,
   stg_lavka__order_items,
   stg_lavka__additional_order_items,
   stg_lavka__additional_products,
+  stg_lavka__features,
   stg_lavka__orders_lavka,
   stg_lavka__preorders,
+  stg_lavka__products,
+  stg_lavka__brands,
+  stg_lavka_surge__surge_logs,
+  stg_lavka__order_status_history,
+  stg_lavka__cities,
+  stg_lavka__product_images,
   stg_courier__courier_motivations,
   stg_courier__motivation_programs,
   stg_courier__orders,
@@ -456,12 +520,10 @@ module.exports = {
   stg_courier__batches,
   stg_courier__courier_batch_history,
   stg_courier__order_assignment,
-  stg_lavka_surge__surge_logs,
-  stg_lavka__order_status_history,
-  stg_lavka__cities,
   stg_ryadom_identity__internal_external_user_links,
   stg_ryadom_identity__external_providers,
-  stg_promo__promocodes
+  stg_promo__promocodes,
+
 };
 
 
