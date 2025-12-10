@@ -1,0 +1,35 @@
+config {
+    type: 'view',
+    description: 'Tables of products in a warehouses',
+    schema: 'staging',
+    columns: table_docs.stg_lavka__warehouse_products,
+    tags: ['lavka', 'staging', 'products', 'view'],
+    name:'stg_lavka__warehouse_products',
+    assertions: {
+        nonNull: ['id'],
+        uniqueKey: ['id']
+  }
+}
+
+select
+    created_at,
+    created_by,
+    feature_id,
+    features_quantity,
+    fixed_quantity,
+    fixed_quantity_at,
+    id,
+    is_active,
+    is_default,
+    old_price,
+    price,
+    product_id,
+    promo_id,
+    quantity,
+    supplier_price,
+    updated_at,
+    updated_by,
+    warehouse_id,
+    launch_id, 
+from
+    ${ref('warehouse_products')}

@@ -1,0 +1,45 @@
+config {
+  type: "table",
+  uniqueKey: ["id"],
+  schema: 'indrive',
+  name: 'indrive_backend__warehouse_products__hourly',
+  tags: ['aws', 'indrive', 'warehouse'],
+
+}
+
+
+select
+    wp.created_at,
+    wp.created_by,
+    wp.feature_id,
+    wp.features_quantity,
+    f.name,
+    f.weight,
+    wp.fixed_quantity,
+    wp.fixed_quantity_at,
+    wp.id,
+    wp.is_active,
+    wp.is_default,
+    wp.old_price,
+    wp.price,
+    wp.product_id,
+    wp.promo_id,
+    wp.quantity,
+    wp.supplier_price,
+    wp.updated_at,
+    wp.updated_by,
+    wp.warehouse_id,
+    current_timestamp() as catalog_updated_at
+     
+from ${ref('stg_lavka__warehouse_products')} as wp
+    join ${ref('stg_lavka__features')} as f  
+    on wp.feature_id = f.id
+
+    
+
+
+
+
+
+
+
