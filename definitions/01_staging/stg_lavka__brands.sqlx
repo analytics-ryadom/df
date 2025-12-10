@@ -1,0 +1,26 @@
+config {
+    type: 'view',
+    description: 'Tables of brands',
+    schema: 'staging',
+    columns: table_docs.stg_lavka__brands,
+    tags: ['lavka', 'staging', 'brands', 'view'],
+    name:'stg_lavka__brands',
+    assertions: {
+        nonNull: ['id'],
+        uniqueKey: ['id']
+  }
+}
+
+select
+    created_at,
+    created_by,
+    id,
+    is_active,
+    name,
+    slug,
+    updated_at,
+    updated_by,
+    launch_id
+    
+from
+    ${ref('brands')}

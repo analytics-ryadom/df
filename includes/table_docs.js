@@ -125,6 +125,30 @@ const stg_lavka__additional_products = {
 
 };
 
+const stg_lavka__brands = {
+    created_at: "Timestamp when this row added to table",
+    created_by: "An id who this row created",
+    id: "Unique record ID",
+    is_active: "Indicates whether the ones is currently active",
+    name: "A Name of brand",
+    slug: "A part of path in url",
+    updated_at: "Timestamp when this row was updated",
+    updated_by: "An id who this row updated",
+    launch_id: "Launch or version ID"
+};
+
+const stg_lavka__product_images ={
+    created_at: "Timestamp when this row added to table",
+    id: "Unique record ID",
+    path: "The path in url",
+    product_id: "Product id of this image",
+    sort_weight: "Sort & weight",
+    launch_id: "Launch or version ID"    
+
+}
+
+;
+
 const stg_lavka__orders_lavka = {
     address_comment: "comments written by user to specify address details",
     building: "building number",
@@ -449,6 +473,12 @@ module.exports = {
   stg_lavka__additional_products,
   stg_lavka__orders_lavka,
   stg_lavka__preorders,
+  stg_lavka__products,
+  stg_lavka__brands,
+  stg_lavka_surge__surge_logs,
+  stg_lavka__order_status_history,
+  stg_lavka__cities,
+  stg_lavka__product_images,
   stg_courier__courier_motivations,
   stg_courier__motivation_programs,
   stg_courier__orders,
@@ -456,12 +486,10 @@ module.exports = {
   stg_courier__batches,
   stg_courier__courier_batch_history,
   stg_courier__order_assignment,
-  stg_lavka_surge__surge_logs,
-  stg_lavka__order_status_history,
-  stg_lavka__cities,
   stg_ryadom_identity__internal_external_user_links,
   stg_ryadom_identity__external_providers,
-  stg_promo__promocodes
+  stg_promo__promocodes,
+
 };
 
 

@@ -1,0 +1,22 @@
+config {
+    type: 'view',
+    description: 'Tables of product images',
+    schema: 'staging',
+    columns: table_docs.stg_product_images,
+    tags: ['lavka', 'staging', 'products', 'images', 'view'],
+    name:'stg_lavka__product_images',
+    assertions: {
+        nonNull: ['id'],
+        uniqueKey: ['id']
+  }
+}
+
+select
+    created_at,
+    id,
+    path,
+    product_id,
+    sort_weight,
+    launch_id   
+from
+    ${ref('product_images')}
