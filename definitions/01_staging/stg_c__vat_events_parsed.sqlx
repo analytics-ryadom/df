@@ -1,0 +1,40 @@
+config {
+  type: "incremental",
+  schema: "staging",
+  tags: ["1c", "staging"],
+  bigquery: {
+    partitionBy: "DATE(created_at)",
+    clusterBy: ["warehouse_guid", "sku_guid", "supplier_guid"]
+  },
+  assertions: {
+    nonNull: ["sku_guid", "warehouse_guid", "created_at"]
+  },
+  description: "Staging table with parsed vat events from 1C"
+}
+
+with raw_data as (
+  select
+    safe.parse_json(raw) as json_data
+  from ${ref("c_vat_history")}
+  ${when(incremental(), `where date(request_dt) >= date_sub(current_date(), interval 1 day)`)}
+),
+
+parsed_data as (
+  select
+    timestamp(json_value(json_data.created_at)) as created_at,
+    json_value(json_data.warehouse_guid) as warehouse_guid,
+    json_value(json_data.supplier_guid) as supplier_guid,
+    safe_cast(json_value(json_data.has_vat) as bool) as has_vat,
+    product
+  from raw_data,
+  unnest(json_query_array(json_data.products)) as product
+)
+
+select
+  created_at,
+  json_value(product.sku_guid) as sku_guid,
+  warehouse_guid,
+  supplier_guid,
+  has_vat,
+  json_value(product.vat_value) as vat_value
+from parsed_data
