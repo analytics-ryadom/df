@@ -32,7 +32,7 @@ select
     current_timestamp() as catalog_updated_at
      
 from ${ref('stg_lavka__warehouse_products')} as wp
-    join ${ref('stg_lavka__features')} as f  
+    left join ${ref('stg_lavka__features')} as f  
     on wp.feature_id = f.id
 
     
