@@ -1,36 +1,36 @@
 /////////////////////////////// Lavka ///////////////////////////////
 const stg_lavka__warehouses = {
-   additional_phone_number: "A second phone number of warehouse",
-   additional_properties: "Contane some properities in json-structure",
-   address: "A warehouses addres",
-   cashbox_unique_number: "A cashbox number",
-   city_id: "An id of the city where the warehouse is located",
-   closes_at: "The time whene the warehouse is closed",
-   created_at: "The UTC timestamp whene the warehouse was create",
-   created_by: "An employees id who created this entry",
-   delivery_time: "No one knows",
-   delivery_zone: "The delivery zone json data",
-   delivery_zone_geo: "The delivery zone geo data",
-   delivery_zone_multi_geo: "The delivery zone multigeo data",
-   detailed_address: "Detailed street address of the warehouse",
-   force_min_amount: "Minimum order amount enforced for deliveries from the warehouse",
-   geo_wkt: "Well-known text representation of the warehouse's geographical location",
-   has_internship: "Indicates whether the warehouse offers internship programs",
-   id: "Unique identifier for the warehouse",
-   is_active: "Indicates whether the warehouse is currently active",
-   is_functioning: "Indicates whether the warehouse is currently functioning",
-   lat: "Latitude coordinate of the warehouse location",
-   long: "Longitude coordinate of the warehouse location",
-   min_amount: "Minimum order amount for deliveries from the warehouse",
-   name: "Name of the warehouse",
-   opens_at: "Time of day when the warehouse opens",
-   phone_number: "Primary phone number for the warehouse",
-   products_quantity: "Number of products stored in the warehouse",
-   updated_at: "Timestamp of the last update to the warehouse record",
-   updated_by: "Identifier of the user who last updated the warehouse record",
-   uuid: "Universally unique identifier for the warehouse",
-   launch_id: "Identifier for the launch associated with the warehouse"
-  };
+    additional_phone_number: "A second phone number of warehouse",
+    additional_properties: "Contane some properities in json-structure",
+    address: "A warehouses addres",
+    cashbox_unique_number: "A cashbox number",
+    city_id: "An id of the city where the warehouse is located",
+    closes_at: "The time whene the warehouse is closed",
+    created_at: "The UTC timestamp whene the warehouse was create",
+    created_by: "An employees id who created this entry",
+    delivery_time: "No one knows",
+    delivery_zone: "The delivery zone json data",
+    delivery_zone_geo: "The delivery zone geo data",
+    delivery_zone_multi_geo: "The delivery zone multigeo data",
+    detailed_address: "Detailed street address of the warehouse",
+    force_min_amount: "Minimum order amount enforced for deliveries from the warehouse",
+    geo_wkt: "Well-known text representation of the warehouse's geographical location",
+    has_internship: "Indicates whether the warehouse offers internship programs",
+    id: "Unique identifier for the warehouse",
+    is_active: "Indicates whether the warehouse is currently active",
+    is_functioning: "Indicates whether the warehouse is currently functioning",
+    lat: "Latitude coordinate of the warehouse location",
+    long: "Longitude coordinate of the warehouse location",
+    min_amount: "Minimum order amount for deliveries from the warehouse",
+    name: "Name of the warehouse",
+    opens_at: "Time of day when the warehouse opens",
+    phone_number: "Primary phone number for the warehouse",
+    products_quantity: "Number of products stored in the warehouse",
+    updated_at: "Timestamp of the last update to the warehouse record",
+    updated_by: "Identifier of the user who last updated the warehouse record",
+    uuid: "Universally unique identifier for the warehouse",
+    launch_id: "Identifier for the launch associated with the warehouse"
+};
 
 const stg_lavka__warehouse_products = {
     created_at: "Timestamp when the item was added to the order",
@@ -51,7 +51,7 @@ const stg_lavka__warehouse_products = {
     updated_at: "Timestamp indicating when the record was last updated",
     updated_by: "User ID of the user who last updated the record",
     warehouse_id: "Unique identifier for the warehouse",
-    launch_id: "Identifier for the launch associated with the warehouse"     
+    launch_id: "Identifier for the launch associated with the warehouse"
 
 };
 
@@ -95,7 +95,7 @@ const stg_lavka__products = {
     launch_id: "",
     is_promo: "Indicates if product is on promotion.",
     is_coffee: "Indicates if the product is coffee"
-  };
+};
 
 const stg_lavka__order_items = {
     created_at: "Timestamp when the item was added to the order",
@@ -160,13 +160,13 @@ const stg_lavka__brands = {
     launch_id: "Launch or version ID"
 };
 
-const stg_lavka__product_images ={
+const stg_lavka__product_images = {
     created_at: "Timestamp when this row added to table",
     id: "Unique record ID",
     path: "The path in url",
     product_id: "Product id of this image",
     sort_weight: "Sort & weight",
-    launch_id: "Launch or version ID"    
+    launch_id: "Launch or version ID"
 
 };
 
@@ -177,7 +177,7 @@ const stg_lavka__features = {
     type_uuid: "",
     uuid: "1C uinque identifyer",
     weight: "A weight",
-    launch_id: "Launch or version ID"   
+    launch_id: "Launch or version ID"
 
 };
 
@@ -225,37 +225,37 @@ const stg_lavka__orders_lavka = {
 };
 
 const stg_lavka__preorders = {
-  address_comment: "Address comment",
-  created_at: "Preorder creation timestamp",
-  customer_last_name: "Customers last name",
-  customer_name: "Customers first name",
-  customer_phone_number: "Customer phone number",
-  delivery_type: "Delivery type",
-  device_id: "Device ID from which the preorder was made",
-  entrance: "Entrance number",
-  flat_number: "Apartment number",
-  floor: "Floor",
-  hash: "Hash for uniqueness or identification",
-  id: "Unique record ID",
-  idempotency_key: "Idempotency key to prevent duplication",
-  lat: "Latitude of the delivery address",
-  leave_at_the_door: "Leave at the door flag",
-  less_packages: "Less packeges, please!",
-  long: "Longitude of the delivery address",
-  paid_at: "Timestamp of payment",
-  payment_deeplink: "Payment deeplink URL",
-  promocode_id: "ID of the applied promo code",
-  street: "Delivery street",
-  user_id: "ID of the user who made the preorder",
-  user_iin: "Users IIN (individual identification number)",
-  warehouse_id: "Warehouse (dark store) ID",
-  launch_id: "Launch or version ID",
-  free_delivery: "Indicates free delivery",
-  customer_address_id: "ID of customers saved address",
-  comment: "General preorder comment",
-  payment_id: "Payment ID in external payment system",
-  provider_user_id: "External provider user ID"
-    
+    address_comment: "Address comment",
+    created_at: "Preorder creation timestamp",
+    customer_last_name: "Customers last name",
+    customer_name: "Customers first name",
+    customer_phone_number: "Customer phone number",
+    delivery_type: "Delivery type",
+    device_id: "Device ID from which the preorder was made",
+    entrance: "Entrance number",
+    flat_number: "Apartment number",
+    floor: "Floor",
+    hash: "Hash for uniqueness or identification",
+    id: "Unique record ID",
+    idempotency_key: "Idempotency key to prevent duplication",
+    lat: "Latitude of the delivery address",
+    leave_at_the_door: "Leave at the door flag",
+    less_packages: "Less packeges, please!",
+    long: "Longitude of the delivery address",
+    paid_at: "Timestamp of payment",
+    payment_deeplink: "Payment deeplink URL",
+    promocode_id: "ID of the applied promo code",
+    street: "Delivery street",
+    user_id: "ID of the user who made the preorder",
+    user_iin: "Users IIN (individual identification number)",
+    warehouse_id: "Warehouse (dark store) ID",
+    launch_id: "Launch or version ID",
+    free_delivery: "Indicates free delivery",
+    customer_address_id: "ID of customers saved address",
+    comment: "General preorder comment",
+    payment_id: "Payment ID in external payment system",
+    provider_user_id: "External provider user ID"
+
 
 };
 
@@ -265,7 +265,7 @@ const stg_lavka__order_status_history = {
     order_id: "identificator of an order",
     status: "status code",
     launch_id: "id of the launch"
-    
+
 };
 
 const stg_lavka__cities = {
@@ -392,7 +392,7 @@ const stg_courier__order_status_history = {
 
 };
 
-const stg_courier__order_assignment  = {
+const stg_courier__order_assignment = {
     assigned_by: "Who's assignment by",
     created_at: "Timestamp of the status change",
     employee_id: "ID of the employee Who's assignment by",
@@ -427,7 +427,7 @@ const stg_courier__courier_batch_history = {
     type: "Type of action related to the batch (e.g., assigned, accepted, delivered)",
     uuid: "Unique UUID identifier of the batch",
     launch_id: "Launch ID or configuration version under which the batch was processed",
-    delivered_at: "Timestamp when the batch was delivered"    
+    delivered_at: "Timestamp when the batch was delivered"
 };
 
 /////////////////////////////// Lavka_surge ///////////////////////////////
@@ -448,26 +448,26 @@ const stg_lavka_surge__surge_logs = {
 
 /////////////////////////////// promo ///////////////////////////////
 const stg_promo__promocodes = {
-    activation_count : "Number of times the promo code has been used.",
-    activation_limit : "Maximum number of times the promo code can be used.",
-    conditions : "Conditions or terms associated with the promo code.",
-    created_at : "Timestamp indicating when the promo code was created.",
-    created_by : "Identifier of the user who created the promo code.",
-    deleted_at : "Timestamp indicating when the promo code was deleted.",
-    expired_at : "Timestamp indicating when the promo code expires.",
-    id : "Unique identifier for the promo code.",
-    is_active : "Boolean value indicating whether the promo code is currently active",
-    prefix : "Prefix associated with the promo code.",
-    promo_type : "Type of promotion associated with the code",
-    promoaction_id : "Identifier of the promotional action associated with the promo code",
-    promocode : "The actual promo code string",
-    recipient_id : "Identifier of the recipient associated with the promo code.",
-    referral_id : "Identifier of the referral associated with the promo code",
-    updated_at : "Timestamp indicating when the promo code was last updated.",
-    updated_by : "Identifier of the user who last updated the promo code.",
-    launch_id : "Identifier of the launch associated with the promo code.",
-    acquisition_channel_id : "Identifier of the acquisition channel associated with the promo code",
-    comment : "Additional notes or information about the promo code"
+    activation_count: "Number of times the promo code has been used.",
+    activation_limit: "Maximum number of times the promo code can be used.",
+    conditions: "Conditions or terms associated with the promo code.",
+    created_at: "Timestamp indicating when the promo code was created.",
+    created_by: "Identifier of the user who created the promo code.",
+    deleted_at: "Timestamp indicating when the promo code was deleted.",
+    expired_at: "Timestamp indicating when the promo code expires.",
+    id: "Unique identifier for the promo code.",
+    is_active: "Boolean value indicating whether the promo code is currently active",
+    prefix: "Prefix associated with the promo code.",
+    promo_type: "Type of promotion associated with the code",
+    promoaction_id: "Identifier of the promotional action associated with the promo code",
+    promocode: "The actual promo code string",
+    recipient_id: "Identifier of the recipient associated with the promo code.",
+    referral_id: "Identifier of the referral associated with the promo code",
+    updated_at: "Timestamp indicating when the promo code was last updated.",
+    updated_by: "Identifier of the user who last updated the promo code.",
+    launch_id: "Identifier of the launch associated with the promo code.",
+    acquisition_channel_id: "Identifier of the acquisition channel associated with the promo code",
+    comment: "Additional notes or information about the promo code"
 
 };
 
@@ -498,31 +498,43 @@ const stg_ryadom_identity__external_providers = {
 
 
 
+
+/////////////////////////////// 1C ///////////////////////////////
+const stg_c__vat_events_parsed = {
+    created_at: "Timestamp of event creation",
+    sku_guid: "Unique identifier for the SKU",
+    warehouse_guid: "Unique identifier for the warehouse",
+    supplier_guid: "Unique identifier for the supplier",
+    has_vat: "Indicates if VAT is applicable",
+    vat_value: "Value of the VAT"
+};
+
 module.exports = {
-  stg_lavka__warehouses,
-  stg_lavka__warehouse_products,
-  stg_lavka__order_items,
-  stg_lavka__additional_order_items,
-  stg_lavka__additional_products,
-  stg_lavka__features,
-  stg_lavka__orders_lavka,
-  stg_lavka__preorders,
-  stg_lavka__products,
-  stg_lavka__brands,
-  stg_lavka_surge__surge_logs,
-  stg_lavka__order_status_history,
-  stg_lavka__cities,
-  stg_lavka__product_images,
-  stg_courier__courier_motivations,
-  stg_courier__motivation_programs,
-  stg_courier__orders,
-  stg_courier__order_status_history,
-  stg_courier__batches,
-  stg_courier__courier_batch_history,
-  stg_courier__order_assignment,
-  stg_ryadom_identity__internal_external_user_links,
-  stg_ryadom_identity__external_providers,
-  stg_promo__promocodes,
+    stg_lavka__warehouses,
+    stg_lavka__warehouse_products,
+    stg_lavka__order_items,
+    stg_lavka__additional_order_items,
+    stg_lavka__additional_products,
+    stg_lavka__features,
+    stg_lavka__orders_lavka,
+    stg_lavka__preorders,
+    stg_lavka__products,
+    stg_lavka__brands,
+    stg_lavka_surge__surge_logs,
+    stg_lavka__order_status_history,
+    stg_lavka__cities,
+    stg_lavka__product_images,
+    stg_courier__courier_motivations,
+    stg_courier__motivation_programs,
+    stg_courier__orders,
+    stg_courier__order_status_history,
+    stg_courier__batches,
+    stg_courier__courier_batch_history,
+    stg_courier__order_assignment,
+    stg_ryadom_identity__internal_external_user_links,
+    stg_ryadom_identity__external_providers,
+    stg_promo__promocodes,
+    stg_c__vat_events_parsed,
 
 };
 
