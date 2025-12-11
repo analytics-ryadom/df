@@ -13,7 +13,7 @@ select
     wp.created_by,
     wp.feature_id,
     wp.features_quantity,
-    f.name,
+    f.name as feature_name,
     f.weight,
     wp.fixed_quantity,
     wp.fixed_quantity_at,
