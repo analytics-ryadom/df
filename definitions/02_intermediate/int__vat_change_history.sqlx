@@ -1,0 +1,77 @@
+config {
+  type: "view",
+  schema: "intermediate",
+  tags: ["1c", "intermediate"],
+  description: "View tracking history of VAT and supplier changes per SKU and warehouse (SCD2)"
+}
+
+with source as (
+  select
+    sku_guid,
+    warehouse_guid,
+    supplier_guid,
+    created_at,
+    vat_value
+  from ${ref("stg_c__vat_events_parsed")}
+),
+
+parsed as (
+  select
+    sku_guid,
+    warehouse_guid,
+    supplier_guid,
+    created_at,
+    -- Parsing vat_value to vat_percent
+    case
+      when regexp_contains(vat_value, r'[0-9]+%') then
+        coalesce(safe_cast(regexp_extract(vat_value, r'([0-9\.]+)%') as float64), 0.0)
+      else 0.0
+    end as vat_percent
+  from source
+),
+
+with_prev_values as (
+  select
+    *,
+    lag(supplier_guid) over (partition by sku_guid, warehouse_guid order by created_at) as prev_supplier_guid,
+    lag(vat_percent) over (partition by sku_guid, warehouse_guid order by created_at) as prev_vat_percent
+  from parsed
+),
+
+changes as (
+  select
+    *
+  from with_prev_values
+  where
+    -- Keep rows where values changed or it's the first row
+    (
+      ifnull(supplier_guid, 'NULL_GUID') != ifnull(prev_supplier_guid, 'NULL_GUID')
+      or prev_supplier_guid is null
+    )
+    or (
+      vat_percent != prev_vat_percent
+      or prev_vat_percent is null
+    )
+),
+
+scd2 as (
+  select
+    sku_guid,
+    warehouse_guid,
+    supplier_guid,
+    vat_percent,
+    -- active_from logic: use created_at directly per user request
+    created_at as active_from,
+    -- active_to logic: lead created_at - 1 second (or same), default to '2099-01-01'
+    lead(created_at, 1, timestamp('2099-01-01 00:00:00')) over (partition by sku_guid, warehouse_guid order by created_at) as active_to
+  from changes
+)
+
+select
+  sku_guid,
+  warehouse_guid,
+  supplier_guid,
+  vat_percent,
+  active_from,
+  active_to
+from scd2
