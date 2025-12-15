@@ -14,7 +14,7 @@ config {
 
 with raw_data as (
   select
-    safe.parse_json(raw) as json_data
+    parse_json(raw) as json_data
   from ${ref("c_vat_history")}
   ${when(incremental(), `where date(request_dt) >= date_sub(current_date(), interval 1 day)`)}
 ),

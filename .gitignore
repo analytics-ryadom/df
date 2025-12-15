@@ -4,3 +4,5 @@ node_modules/
 .agent/
 .DS_Store
 .envrc
+.df-credentials.json
+key.json
