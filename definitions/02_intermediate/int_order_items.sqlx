@@ -27,10 +27,10 @@ _order_items as (
 
 _additional_order_items as (
     select order_id,
-           count(case when ap.type = 'service_fee' then aoi.id end) > 0 as service_fee_purchase,
-           count(case when ap.type = 'own_paid_delivery' then aoi.id end) > 0 as delivery_fee_purchase,
-           sum(case when ap.type = 'service_fee' then aoi.price end)/100 as service_fee_price,
-           sum(case when ap.type = 'own_paid_delivery' then aoi.price end)/100 as delivery_fee_price,
+           count(case when ap.id = 3 then aoi.id end) > 0 as service_fee_purchase,
+           count(case when ap.id != 3 then aoi.id end) > 0 as delivery_fee_purchase,
+           sum(case when ap.id = 3 then aoi.price end)/100 as service_fee_price,
+           sum(case when ap.id != 3 then aoi.price end)/100 as delivery_fee_price,
            sum(aoi.price)/100 as total_additional_price
     from ${ref('stg_lavka__additional_order_items')} aoi
         join ${ref('stg_lavka__additional_products')} ap on ap.id = aoi.product_id
