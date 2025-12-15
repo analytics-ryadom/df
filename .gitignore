@@ -1,5 +1,8 @@
 node_modules/
 .vscode/settings.json
 .vscode-dataform-tools/.sqlfluff
+.agent/
+.DS_Store
+.envrc
 .df-credentials.json
 key.json
