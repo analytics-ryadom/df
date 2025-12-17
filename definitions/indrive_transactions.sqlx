@@ -66,6 +66,7 @@ select
   JSON_VALUE(raw_data, '$.uuid') AS uuid,
   JSON_VALUE(raw_data, '$.vendor_name') AS vendor_name,
   JSON_VALUE(raw_data, '$.amount_net') AS amount_net,
+  JSON_VALUE(raw_data, '$.captured_amount') AS captured_amount,
   JSON_VALUE(raw_data, '$.refunded_amount') AS refunded_amount,
  JSON_VALUE(JSON_VALUE(raw_data, '$.jdoc')) as jdoc,
 -- Nested JSON field in 'jdoc'
