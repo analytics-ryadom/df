@@ -25,7 +25,7 @@ with _orders_cour as (
     select order_id,
            batch_id,
            courier_motivation_amount,
-           warehouse_id,
+        --    warehouse_id,
            t1.address,
            t2.lat as wh_lat,
            t2.long as wh_long,
@@ -41,6 +41,7 @@ with _orders_cour as (
 ),
 _orders_lavka as (
     select  t1.id as order_id,
+            t1.warehouse_id,
             t1.user_id,
             t1.lat as order_lat,
             t1.long as order_long,
