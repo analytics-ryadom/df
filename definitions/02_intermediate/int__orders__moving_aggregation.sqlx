@@ -1,524 +1,241 @@
 config {
   type: 'incremental',
-  description: 'Intermediate layer with moving 7 and 31 days metrics',
+  description: 'User-level daily snapshots with moving window metrics (7 and 30 days)',
   schema: 'intermediate',
-  tags: ['intermediate', 'orders', `users`],
+  tags: ['intermediate', 'orders', 'users', 'moving_aggregation'],
   name: 'int__orders__moving_aggregation',
   bigquery: {
     partitionBy: 'calculation_date',
     clusterBy: ['user_id']
-  },
+  }
+}
+
+js {
+  // Activity thresholds for user segmentation
+  const ACTIVITY_THRESHOLD_DAILY = 1;      // Minimum orders yesterday to be considered active
+  const ACTIVITY_THRESHOLD_WEEKLY = 2;     // Minimum orders in 7-day window to be considered active
+  const ACTIVITY_THRESHOLD_MONTHLY = 4;    // Minimum orders in 30-day window to be considered active
   
+  // User lifecycle thresholds
+  const NEWBIE_THRESHOLD_DAYS = 30;        // Days since first order to be considered a newbie
+  
+  // Migration date: when daily snapshots became available  
+  const SNAPSHOT_MIGRATION_DATE = '2025-10-01';
+  
+  // Incremental refresh settings
+  const LOOKBACK_DAYS_INCREMENTAL = 3;     // How many days to recalculate on incremental runs
+  const FULL_REFRESH_START_DATE = '2023-01-01'; // Start date for full refresh
 }
 
 pre_operations {
   declare date_checkpoint date; 
   set date_checkpoint = (
     ${when(incremental(),
-      `select date_sub(max(calculation_date), interval 3 day) from ${self()}`, `date("2025-05-01")`)}
-    );
+      `select date_sub(max(calculation_date), interval ${LOOKBACK_DAYS_INCREMENTAL} day) from ${self()}`,
+      `date('${FULL_REFRESH_START_DATE}')`
+    )}
+  );
 
-    ${when(incremental(),
-      `delete from ${self()} where calculation_date >= date_checkpoint`)
-    }
-  }
-
-${when(incremental(),
-`--Incremental logic
-  with
-  _date_range as (
-    select
-      calculation_date,
-      date_sub(calculation_date, interval 7 day) as week_start,
-      date_sub(calculation_date, interval 1 day) as week_end,
-      date_sub(calculation_date, interval 31 day) as month_start,
-      date_sub(calculation_date, interval 1 day) as month_end
-    from
-      unnest(
-        generate_date_array(date_sub(current_date(), interval 3 day), date_sub(current_date(), interval 1 day), interval 1 day)) as calculation_date
-  )
-
-  , _weekly_enriched_data as (
-    select
-        "week" as aggregation_period,
-        dr.calculation_date,
-        dr.week_start as period_start,
-        dr.week_end as period_end,
-        o.user_id,
-        bp.first_order_dt,
-        bp.last_active_city_id,
-        bp.last_active_warehouse_id,
-        ap.last_media_source,
-        ap.last_device_operating_system,
-        count(distinct order_id) user_orders_cnt,
-        case
-          when count(distinct order_id) >= 1 then 1
-          else 0
-        end as active_user_flag,
-        case
-          when date_diff(dr.calculation_date, date(bp.first_order_dt), day) <= 30 then 1
-          else 0
-        end as newbie_flag
-    from
-        _date_range dr
-    left join
-        ${ref('int_lavka_courier_orders')} o
-    on
-        date(o.created_at) between week_start and week_end
-    left join
-        ${ref('int__users__backend_properties_snapshots')} bp
-    on
-      dr.calculation_date <= '2025-10-01'
-    and
-      o.user_id = bp.user_id
-    and
-      bp._snapshot_date = '2025-10-01'
-    left join
-        ${ref('int__users__superapp_amplitude_properties_snapshots')} ap
-    on
-      o.user_id = ap.user_id
-    and
-      ap._snapshot_date = '2025-10-01'
-    where
-      dr.calculation_date <= '2025-10-01'
-    group by
-        dr.calculation_date,
-        dr.week_start,
-        dr.week_end,
-        user_id,
-        bp.first_order_dt,
-        bp.last_active_city_id,
-        bp.last_active_warehouse_id,
-        ap.last_media_source,
-        ap.last_device_operating_system
-
-    union all
-
-    select
-        "week" as aggregation_period,
-        dr.calculation_date,
-        dr.week_start as period_start,
-        dr.week_end as period_end,
-        o.user_id,
-        bp.first_order_dt,
-        bp.last_active_city_id,
-        bp.last_active_warehouse_id,
-        ap.last_media_source,
-        ap.last_device_operating_system,
-        count(distinct order_id) user_orders_cnt,
-        case
-          when count(distinct order_id) >= 4 then 1
-          else 0
-        end as active_user_flag,
-        case
-          when date_diff(dr.calculation_date, date(bp.first_order_dt), day) <= 30 then 1
-          else 0
-        end as newbie_flag
-    from
-        _date_range dr
-    left join
-        ${ref('int_lavka_courier_orders')} o
-    on
-        date(o.created_at) between week_start and week_end
-    left join
-        ${ref('int__users__backend_properties_snapshots')} bp
-    on
-      dr.calculation_date > '2025-10-01'
-    and
-      o.user_id = bp.user_id
-    and
-      date(o.created_at) = bp._snapshot_date
-    left join
-        ${ref('int__users__superapp_amplitude_properties_snapshots')} ap
-    on
-      o.user_id = ap.user_id
-    and
-      date(o.created_at) = ap._snapshot_date
-    where
-      dr.calculation_date > '2025-10-01'
-    group by
-        dr.calculation_date,
-        dr.week_start,
-        dr.week_end,
-        user_id,
-        bp.first_order_dt,
-        bp.last_active_city_id,
-        bp.last_active_warehouse_id,
-        ap.last_media_source,
-        ap.last_device_operating_system
-  )
-
-  , _monthly_enriched_data as (
-    select
-        "month" as aggregation_period,
-        dr.calculation_date,
-        dr.month_start as period_start,
-        dr.month_end as period_end,
-        o.user_id,
-        bp.first_order_dt,
-        bp.last_active_city_id,
-        bp.last_active_warehouse_id,
-        ap.last_media_source,
-        ap.last_device_operating_system,
-        count(distinct order_id) user_orders_cnt,
-        case
-          when count(distinct order_id) >= 4 then 1
-          else 0
-        end as active_user_flag,
-        case
-          when date_diff(dr.calculation_date, date(bp.first_order_dt), day) <= 30 then 1
-          else 0
-        end as newbie_flag
-    from
-        _date_range dr
-    left join
-        ${ref('int_lavka_courier_orders')} o
-    on
-        date(o.created_at) between month_start and month_end
-    left join
-        ${ref('int__users__backend_properties_snapshots')} bp
-    on
-      dr.calculation_date <= '2025-10-01'
-    and
-      o.user_id = bp.user_id
-    and
-      bp._snapshot_date = '2025-10-01'
-    left join
-        ${ref('int__users__superapp_amplitude_properties_snapshots')} ap
-    on
-      o.user_id = ap.user_id
-    and
-      ap._snapshot_date = '2025-10-01'
-    where
-      dr.calculation_date <= '2025-10-01'
-    group by
-        dr.calculation_date,
-        dr.month_start,
-        dr.month_end,
-        user_id,
-        bp.first_order_dt,
-        bp.last_active_city_id,
-        bp.last_active_warehouse_id,
-        ap.last_media_source,
-        ap.last_device_operating_system
-
-    union all
-
-    select
-        "month" as aggregation_period,
-        dr.calculation_date,
-        dr.month_start as period_start,
-        dr.month_end as period_end,
-        o.user_id,
-        bp.first_order_dt,
-        bp.last_active_city_id,
-        bp.last_active_warehouse_id,
-        ap.last_media_source,
-        ap.last_device_operating_system,
-        count(distinct order_id) user_orders_cnt,
-        case
-          when count(distinct order_id) >= 4 then 1
-          else 0
-        end as active_user_flag,
-        case
-          when date_diff(dr.calculation_date, date(bp.first_order_dt), day) <= 30 then 1
-          else 0
-        end as newbie_flag
-    from
-        _date_range dr
-    left join
-        ${ref('int_lavka_courier_orders')} o
-    on
-        date(o.created_at) between month_start and month_end
-    left join
-        ${ref('int__users__backend_properties_snapshots')} bp
-    on
-      dr.calculation_date > '2025-10-01'
-    and
-      o.user_id = bp.user_id
-    and
-      date(o.created_at) = bp._snapshot_date
-    left join
-        ${ref('int__users__superapp_amplitude_properties_snapshots')} ap
-    on
-      o.user_id = ap.user_id
-    and
-      date(o.created_at) = ap._snapshot_date
-    where
-      dr.calculation_date > '2025-10-01'
-    group by
-        dr.calculation_date,
-        dr.month_start,
-        dr.month_end,
-        user_id,
-        bp.first_order_dt,
-        bp.last_active_city_id,
-        bp.last_active_warehouse_id,
-        ap.last_media_source,
-        ap.last_device_operating_system
-  )
-  
-  select
-    *
-  from
-    _weekly_enriched_data
-  
-  union all
-  
-  select
-    *
-  from
-    _monthly_enriched_data
-`
-
-,
-  
-`-- Full refrsh logic
-  with
-  _date_range as (
-    select
-      calculation_date,
-      date_sub(calculation_date, interval 7 day) as week_start,
-      date_sub(calculation_date, interval 1 day) as week_end,
-      date_sub(calculation_date, interval 31 day) as month_start,
-      date_sub(calculation_date, interval 1 day) as month_end
-    from
-      unnest(
-        generate_date_array(date_sub(current_date(), interval 365 day), date_sub(current_date(), interval 1 day), interval 1 day)) as calculation_date
-  )
-
-  , _weekly_enriched_data as (
-    select
-        "week" as aggregation_period,
-        dr.calculation_date,
-        dr.week_start as period_start,
-        dr.week_end as period_end,
-        o.user_id,
-        bp.first_order_dt,
-        bp.last_active_city_id,
-        bp.last_active_warehouse_id,
-        ap.last_media_source,
-        ap.last_device_operating_system,
-        count(distinct order_id) user_orders_cnt,
-        case
-          when count(distinct order_id) >= 1 then 1
-          else 0
-        end as active_user_flag,
-        case
-          when date_diff(dr.calculation_date, date(bp.first_order_dt), day) <= 30 then 1
-          else 0
-        end as newbie_flag
-    from
-        _date_range dr
-    left join
-        ${ref('int_lavka_courier_orders')} o
-    on
-        date(o.created_at) between week_start and week_end
-    left join
-        ${ref('int__users__backend_properties_snapshots')} bp
-    on
-      dr.calculation_date <= '2025-10-01'
-    and
-      o.user_id = bp.user_id
-    and
-      bp._snapshot_date = '2025-10-01'
-    left join
-        ${ref('int__users__superapp_amplitude_properties_snapshots')} ap
-    on
-      o.user_id = ap.user_id
-    and
-      ap._snapshot_date = '2025-10-01'
-    where
-      dr.calculation_date <= '2025-10-01'
-    group by
-        dr.calculation_date,
-        dr.week_start,
-        dr.week_end,
-        user_id,
-        bp.first_order_dt,
-        bp.last_active_city_id,
-        bp.last_active_warehouse_id,
-        ap.last_media_source,
-        ap.last_device_operating_system
-
-    union all
-
-    select
-        "week" as aggregation_period,
-        dr.calculation_date,
-        dr.week_start as period_start,
-        dr.week_end as period_end,
-        o.user_id,
-        bp.first_order_dt,
-        bp.last_active_city_id,
-        bp.last_active_warehouse_id,
-        ap.last_media_source,
-        ap.last_device_operating_system,
-        count(distinct order_id) user_orders_cnt,
-        case
-          when count(distinct order_id) >= 4 then 1
-          else 0
-        end as active_user_flag,
-        case
-          when date_diff(dr.calculation_date, date(bp.first_order_dt), day) <= 30 then 1
-          else 0
-        end as newbie_flag
-    from
-        _date_range dr
-    left join
-        ${ref('int_lavka_courier_orders')} o
-    on
-        date(o.created_at) between week_start and week_end
-    left join
-        ${ref('int__users__backend_properties_snapshots')} bp
-    on
-      dr.calculation_date > '2025-10-01'
-    and
-      o.user_id = bp.user_id
-    and
-      date(o.created_at) = bp._snapshot_date
-    left join
-        ${ref('int__users__superapp_amplitude_properties_snapshots')} ap
-    on
-      o.user_id = ap.user_id
-    and
-      date(o.created_at) = ap._snapshot_date
-    where
-      dr.calculation_date > '2025-10-01'
-    group by
-        dr.calculation_date,
-        dr.week_start,
-        dr.week_end,
-        user_id,
-        bp.first_order_dt,
-        bp.last_active_city_id,
-        bp.last_active_warehouse_id,
-        ap.last_media_source,
-        ap.last_device_operating_system
-  )
-
-  , _monthly_enriched_data as (
-    select
-        "month" as aggregation_period,
-        dr.calculation_date,
-        dr.month_start as period_start,
-        dr.month_end as period_end,
-        o.user_id,
-        bp.first_order_dt,
-        bp.last_active_city_id,
-        bp.last_active_warehouse_id,
-        ap.last_media_source,
-        ap.last_device_operating_system,
-        count(distinct order_id) user_orders_cnt,
-        case
-          when count(distinct order_id) >= 4 then 1
-          else 0
-        end as active_user_flag,
-        case
-          when date_diff(dr.calculation_date, date(bp.first_order_dt), day) <= 30 then 1
-          else 0
-        end as newbie_flag
-    from
-        _date_range dr
-    left join
-        ${ref('int_lavka_courier_orders')} o
-    on
-        date(o.created_at) between month_start and month_end
-    left join
-        ${ref('int__users__backend_properties_snapshots')} bp
-    on
-      dr.calculation_date <= '2025-10-01'
-    and
-      o.user_id = bp.user_id
-    and
-      bp._snapshot_date = '2025-10-01'
-    left join
-        ${ref('int__users__superapp_amplitude_properties_snapshots')} ap
-    on
-      o.user_id = ap.user_id
-    and
-      ap._snapshot_date = '2025-10-01'
-    where
-      dr.calculation_date <= '2025-10-01'
-    group by
-        dr.calculation_date,
-        dr.month_start,
-        dr.month_end,
-        user_id,
-        bp.first_order_dt,
-        bp.last_active_city_id,
-        bp.last_active_warehouse_id,
-        ap.last_media_source,
-        ap.last_device_operating_system
-
-    union all
-
-    select
-        "month" as aggregation_period,
-        dr.calculation_date,
-        dr.month_start as period_start,
-        dr.month_end as period_end,
-        o.user_id,
-        bp.first_order_dt,
-        bp.last_active_city_id,
-        bp.last_active_warehouse_id,
-        ap.last_media_source,
-        ap.last_device_operating_system,
-        count(distinct order_id) user_orders_cnt,
-        case
-          when count(distinct order_id) >= 4 then 1
-          else 0
-        end as active_user_flag,
-        case
-          when date_diff(dr.calculation_date, date(bp.first_order_dt), day) <= 30 then 1
-          else 0
-        end as newbie_flag
-    from
-        _date_range dr
-    left join
-        ${ref('int_lavka_courier_orders')} o
-    on
-        date(o.created_at) between month_start and month_end
-    left join
-        ${ref('int__users__backend_properties_snapshots')} bp
-    on
-      dr.calculation_date > '2025-10-01'
-    and
-      o.user_id = bp.user_id
-    and
-      date(o.created_at) = bp._snapshot_date
-    left join
-        ${ref('int__users__superapp_amplitude_properties_snapshots')} ap
-    on
-      o.user_id = ap.user_id
-    and
-      date(o.created_at) = ap._snapshot_date
-    where
-      dr.calculation_date > '2025-10-01'
-    group by
-        dr.calculation_date,
-        dr.month_start,
-        dr.month_end,
-        user_id,
-        bp.first_order_dt,
-        bp.last_active_city_id,
-        bp.last_active_warehouse_id,
-        ap.last_media_source,
-        ap.last_device_operating_system
-  )
-  
-  select
-    *
-  from
-    _weekly_enriched_data
-  
-  union all
-  
-  select
-    *
-  from
-    _monthly_enriched_data
-
-`
-    )
+  ${when(incremental(),
+    `delete from ${self()} where calculation_date > date_checkpoint`
+  )}
 }
+
+with
+  _users_base_int as (
+  select distinct
+    user_id
+  , calculation_date
+  from
+    ${when(incremental(), `${self()}`, `(select cast(null as string) as user_id, cast(null as date) as calculation_date from (select 1) where false)`)}
+  )
+
+, _user_calendar_int as (
+  select
+    user_id
+  , calculation_date
+  from
+    _users_base_int
+  where
+    calculation_date <= date_checkpoint
+
+  union all
+
+  select
+    user_id
+  , calculation_date
+  from (
+    select distinct
+      user_id
+    from
+      _users_base_int
+  )
+  , unnest(
+      generate_date_array(
+        date_checkpoint,
+        date_sub(current_date(), interval 1 day)
+      )
+    ) as calculation_date
+  where
+    calculation_date > date_checkpoint
+  )
+
+, _unique_users_hist as (
+  select
+    user_id
+  , min(date(created_at)) as first_order_date
+  from
+    ${ref('mart_orders')}
+  where
+    is_internal_order is false
+  and
+    date(created_at) > date_checkpoint
+  group by
+    user_id
+  )
+
+, _dates_users_hist as (
+  ${when(incremental(),
+    `select
+      u.user_id
+    , calculation_date
+    from
+      _unique_users_hist u
+    , unnest(
+        generate_date_array(
+          date_checkpoint,
+          date_sub(current_date(), interval 1 day),
+          interval 1 day
+        )
+      ) as calculation_date`,
+    `select
+      u.user_id
+    , calculation_date
+    from
+      _unique_users_hist u
+    , unnest(
+        generate_date_array(
+          u.first_order_date,
+          date_sub(current_date(), interval 1 day),
+          interval 1 day
+        )
+      ) as calculation_date`
+  )}
+  )
+
+, _orders_base as (
+  select
+    du.user_id
+  , calculation_date
+  , o.order_id
+  from
+    _dates_users_hist du
+  left join
+    ${ref('mart_orders')} o
+  on
+    calculation_date = date(o.created_at)
+  and
+    du.user_id = o.user_id
+  and
+    is_internal_order is false
+  )
+
+, _order_base_enriched as (
+  ${when(incremental(),
+    `select
+      uc.user_id
+    , uc.calculation_date
+    , coalesce(ob.order_id, mint.order_id) as order_id
+    from
+      _user_calendar_int uc
+    left join
+      ${self()} mint
+    on
+      uc.user_id = mint.user_id
+    and
+      uc.calculation_date = mint.calculation_date
+    left join
+      _orders_base ob
+    on
+      uc.user_id = ob.user_id
+    and
+      uc.calculation_date = ob.calculation_date`,
+    `select * from _orders_base`
+  )}
+  )
+
+, _orders_with_counts_hist as (
+  select
+    calculation_date
+  , user_id
+  , order_id
+  , count(order_id) over(
+      partition by user_id 
+      order by unix_date(calculation_date) 
+      range between 7 preceding and current row
+    ) as orders_last_7_days
+  , count(order_id) over(
+      partition by user_id 
+      order by unix_date(calculation_date) 
+      range between 30 preceding and current row
+    ) as orders_last_30_days
+  , count(order_id) over(
+      partition by user_id, calculation_date 
+    ) as orders_yesterday
+  from
+    _order_base_enriched
+  )
+
+, _classified_users_hist as (
+  select
+    calculation_date
+  , date_trunc(calculation_date, isoweek) as week_start
+  , date_trunc(calculation_date, month) as month_start
+  , o.user_id
+  , o.order_id
+  , case
+      when orders_yesterday >= ${ACTIVITY_THRESHOLD_DAILY} then 1
+      else 0
+    end as flag_daily
+  , case
+      when orders_last_7_days >= ${ACTIVITY_THRESHOLD_WEEKLY} then 1
+      else 0
+    end as flag_7_days
+  , case
+      when orders_last_30_days >= ${ACTIVITY_THRESHOLD_MONTHLY} then 1
+      else 0
+    end as flag_30_days
+  , bp.last_active_city_id
+  , bp.last_active_warehouse_id
+  , ap.last_media_source
+  , ap.last_device_operating_system
+  , case
+      when date_diff(o.calculation_date, date(bp.first_order_dt), day) <= ${NEWBIE_THRESHOLD_DAYS} then 1
+      else 0
+    end as newbie_flag
+  from
+    _orders_with_counts_hist o
+  left join
+    ${ref('int__users__backend_properties_snapshots')} bp
+  on
+    o.user_id = bp.user_id
+  and
+    bp._snapshot_date = case
+      when calculation_date <= date('${SNAPSHOT_MIGRATION_DATE}') then date('${SNAPSHOT_MIGRATION_DATE}')
+      else calculation_date
+    end
+  left join
+    ${ref('int__users__superapp_amplitude_properties_snapshots')} ap
+  on
+    o.user_id = ap.user_id
+  and
+    ap._snapshot_date = case
+      when calculation_date <= date('${SNAPSHOT_MIGRATION_DATE}') then date('${SNAPSHOT_MIGRATION_DATE}')
+      else calculation_date
+    end
+  )
+
+select
+  *
+from
+  _classified_users_hist
