@@ -1,0 +1,416 @@
+config {
+  type: 'incremental',
+  description: 'Daily, weekly, and monthly aggregated metrics for product growth dashboard',
+  schema: 'mart',
+  tags: ['mart', 'product', 'growth', 'dashboard'],
+  name: 'mart__product__main_dashboard__growth',
+  bigquery: {
+    partitionBy: 'calculation_date',
+    clusterBy: ['last_active_city_id', 'last_active_warehouse_id']
+  }
+}
+
+js {
+  // Incremental refresh settings
+  const LOOKBACK_DAYS_INCREMENTAL = 31;     // How many days to recalculate on incremental runs
+  const FULL_REFRESH_START_DATE = '2020-01-01'; // Start date for full refresh
+}
+
+pre_operations {
+  declare date_checkpoint date;
+  set date_checkpoint = (
+    ${when(incremental(),
+      `select date_sub(max(calculation_date), interval ${LOOKBACK_DAYS_INCREMENTAL} day) from ${self()}`,
+      `date('${FULL_REFRESH_START_DATE}')`
+    )}
+  );
+
+  ${when(incremental(),
+    `delete from ${self()} where calculation_date > date_checkpoint`
+  )}
+}
+
+with
+  _daily_preaggregated_base as (
+  select
+      calculation_date
+    , week_start
+    , month_start
+    , last_active_city_id
+    , last_active_warehouse_id
+    , last_media_source
+    , last_device_operating_system
+    , count(distinct user_id) as total_users_cnt
+    , count(distinct case when order_id is not null then user_id else null end) as daily_users_cnt
+    , count(distinct order_id) as daily_orders_cnt
+    , count(distinct case when flag_daily = 1 then user_id else null end) as daily_active_users_cnt
+    , count(distinct case when flag_daily = 1 then order_id else null end) as daily_active_orders_cnt
+    , count(distinct case when newbie_flag = 1 and flag_daily = 1 then user_id else null end) as daily_active_newbie_users_cnt
+    , count(distinct case when newbie_flag = 1 and flag_daily = 1 then order_id else null end) as daily_active_newbie_orders_cnt
+    , count(distinct case when newbie_flag = 0 and flag_daily = 1 then user_id else null end) as daily_active_oldbie_users_cnt
+    , count(distinct case when newbie_flag = 0 and flag_daily = 1 then order_id else null end) as daily_active_oldbie_orders_cnt
+    , count(distinct case when newbie_flag = 1 and flag_daily = 0 then user_id else null end) as daily_not_active_newbie_users_cnt
+    , count(distinct case when newbie_flag = 1 and flag_daily = 0 then order_id else null end) as daily_not_active_newbie_orders_cnt
+    , count(distinct case when newbie_flag = 0 and flag_daily = 0 then user_id else null end) as daily_not_active_oldbie_users_cnt
+    , count(distinct case when newbie_flag = 0 and flag_daily = 0 then order_id else null end) as daily_not_active_oldbie_orders_cnt
+  from
+    ${ref('int__orders__moving_aggregation')}
+  where
+    calculation_date > date_checkpoint
+  group by
+      calculation_date
+    , week_start
+    , month_start
+    , last_active_city_id
+    , last_active_warehouse_id
+    , last_media_source
+    , last_device_operating_system
+  )
+
+  , _weekly_preaggregated_base as (
+  select
+      calculation_date
+    , week_start
+    , month_start
+    , last_active_city_id
+    , last_active_warehouse_id
+    , last_media_source
+    , last_device_operating_system
+    , count(distinct user_id) as total_users_cnt
+    , count(distinct case when order_id is not null then user_id else null end) as weekly_users_cnt
+    , count(distinct order_id) as weekly_orders_cnt
+    , count(distinct case when flag_7_days = 1 then user_id else null end) as weekly_active_users_cnt
+    , count(distinct case when flag_7_days = 1 then order_id else null end) as weekly_active_orders_cnt
+    , count(distinct case when newbie_flag = 1 and flag_7_days = 1 then user_id else null end) as weekly_active_newbie_users_cnt
+    , count(distinct case when newbie_flag = 1 and flag_7_days = 1 then order_id else null end) as weekly_active_newbie_orders_cnt
+    , count(distinct case when newbie_flag = 0 and flag_7_days = 1 then user_id else null end) as weekly_active_oldbie_users_cnt
+    , count(distinct case when newbie_flag = 0 and flag_7_days = 1 then order_id else null end) as weekly_active_oldbie_orders_cnt
+    , count(distinct case when newbie_flag = 1 and flag_7_days = 0 then user_id else null end) as weekly_not_active_newbie_users_cnt
+    , count(distinct case when newbie_flag = 1 and flag_7_days = 0 then order_id else null end) as weekly_not_active_newbie_orders_cnt
+    , count(distinct case when newbie_flag = 0 and flag_7_days = 0 then user_id else null end) as weekly_not_active_oldbie_users_cnt
+    , count(distinct case when newbie_flag = 0 and flag_7_days = 0 then order_id else null end) as weekly_not_active_oldbie_orders_cnt
+  from
+    ${ref('int__orders__moving_aggregation')}
+  where
+    calculation_date > date_checkpoint
+  group by
+      calculation_date
+    , week_start
+    , month_start
+    , last_active_city_id
+    , last_active_warehouse_id
+    , last_media_source
+    , last_device_operating_system
+  )
+
+  , _monthly_preaggregated_base as (
+  select
+      calculation_date
+    , week_start
+    , month_start
+    , last_active_city_id
+    , last_active_warehouse_id
+    , last_media_source
+    , last_device_operating_system
+    , count(distinct user_id) as total_users_cnt
+    , count(distinct case when order_id is not null then user_id else null end) as monthly_users_cnt
+    , count(distinct order_id) as monthly_orders_cnt
+    , count(distinct case when flag_30_days = 1 then user_id else null end) as monthly_active_users_cnt
+    , count(distinct case when flag_30_days = 1 then order_id else null end) as monthly_active_orders_cnt
+    , count(distinct case when newbie_flag = 1 and flag_30_days = 1 then user_id else null end) as monthly_active_newbie_users_cnt
+    , count(distinct case when newbie_flag = 1 and flag_30_days = 1 then order_id else null end) as monthly_active_newbie_orders_cnt
+    , count(distinct case when newbie_flag = 0 and flag_30_days = 1 then user_id else null end) as monthly_active_oldbie_users_cnt
+    , count(distinct case when newbie_flag = 0 and flag_30_days = 1 then order_id else null end) as monthly_active_oldbie_orders_cnt
+    , count(distinct case when newbie_flag = 1 and flag_30_days = 0 then user_id else null end) as monthly_not_active_newbie_users_cnt
+    , count(distinct case when newbie_flag = 1 and flag_30_days = 0 then order_id else null end) as monthly_not_active_newbie_orders_cnt
+    , count(distinct case when newbie_flag = 0 and flag_30_days = 0 then user_id else null end) as monthly_not_active_oldbie_users_cnt
+    , count(distinct case when newbie_flag = 0 and flag_30_days = 0 then order_id else null end) as monthly_not_active_oldbie_orders_cnt
+  from
+    ${ref('int__orders__moving_aggregation')}
+  where
+    calculation_date > date_checkpoint
+  group by
+      calculation_date
+    , week_start
+    , month_start
+    , last_active_city_id
+    , last_active_warehouse_id
+    , last_media_source
+    , last_device_operating_system
+  )
+
+  , _daily_window_base as (
+  select distinct
+      calculation_date
+    , last_active_city_id
+    , last_active_warehouse_id
+    , last_media_source
+    , last_device_operating_system
+    , user_id
+    , order_id
+  from
+    ${ref('int__orders__moving_aggregation')}
+  where
+    calculation_date > date_checkpoint
+  )
+
+  , _daily_window_metrics as (
+  select
+      calculation_date
+    , last_active_city_id
+    , last_active_warehouse_id
+    , last_media_source
+    , last_device_operating_system
+    , count(distinct user_id) as period_total_users_cnt
+    , count(distinct order_id) as period_total_orders_cnt
+  from
+    _daily_window_base
+  group by
+      calculation_date
+    , last_active_city_id
+    , last_active_warehouse_id
+    , last_media_source
+    , last_device_operating_system
+  )
+
+  , _daily_final as (
+  select
+      base.*
+    , coalesce(win.period_total_users_cnt, 0) as period_total_users_cnt
+    , coalesce(win.period_total_orders_cnt, 0) as period_total_orders_cnt
+  from
+    _daily_preaggregated_base base
+  left join _daily_window_metrics win
+  on
+    base.calculation_date = win.calculation_date
+  and
+    base.last_active_city_id = win.last_active_city_id
+  and
+    base.last_active_warehouse_id = win.last_active_warehouse_id
+  and
+    base.last_media_source = win.last_media_source
+  and
+    base.last_device_operating_system = win.last_device_operating_system
+  )
+
+  , _weekly_window_base as (
+  select distinct
+      calculation_date
+    , last_active_city_id
+    , last_active_warehouse_id
+    , last_media_source
+    , last_device_operating_system
+    , user_id
+    , order_id
+  from
+    ${ref('int__orders__moving_aggregation')}
+  where
+    calculation_date > date_checkpoint
+  and
+    order_id is not null
+  )
+
+  , _weekly_window_metrics as (
+  select
+      w1.calculation_date
+    , w1.last_active_city_id
+    , w1.last_active_warehouse_id
+    , w1.last_media_source
+    , w1.last_device_operating_system
+    , count(distinct w2.user_id) as period_total_users_cnt
+    , count(distinct w2.order_id) as period_total_orders_cnt
+  from
+    _weekly_window_base w1
+  join _weekly_window_base w2
+  on
+    w1.last_active_city_id = w2.last_active_city_id
+  and
+    w1.last_active_warehouse_id = w2.last_active_warehouse_id
+  and
+    w1.last_media_source = w2.last_media_source
+  and
+    w1.last_device_operating_system = w2.last_device_operating_system
+  and
+    w2.calculation_date between date_sub(w1.calculation_date, interval 6 day) and w1.calculation_date
+  group by
+      w1.calculation_date
+    , w1.last_active_city_id
+    , w1.last_active_warehouse_id
+    , w1.last_media_source
+    , w1.last_device_operating_system
+  )
+
+  , _weekly_final as (
+  select
+      base.*
+    , coalesce(win.period_total_users_cnt, 0) as period_total_users_cnt
+    , coalesce(win.period_total_orders_cnt, 0) as period_total_orders_cnt
+  from
+    _weekly_preaggregated_base base
+  left join _weekly_window_metrics win
+  on
+    base.calculation_date = win.calculation_date
+  and
+    base.last_active_city_id = win.last_active_city_id
+  and
+    base.last_active_warehouse_id = win.last_active_warehouse_id
+  and
+    base.last_media_source = win.last_media_source
+  and
+    base.last_device_operating_system = win.last_device_operating_system
+  )
+
+  , _monthly_window_base as (
+  select distinct
+      calculation_date
+    , last_active_city_id
+    , last_active_warehouse_id
+    , last_media_source
+    , last_device_operating_system
+    , user_id
+    , order_id
+  from
+    ${ref('int__orders__moving_aggregation')}
+  where
+    calculation_date > date_checkpoint
+  and
+    order_id is not null
+  )
+
+  , _monthly_window_metrics as (
+  select
+      m1.calculation_date
+    , m1.last_active_city_id
+    , m1.last_active_warehouse_id
+    , m1.last_media_source
+    , m1.last_device_operating_system
+    , count(distinct m2.user_id) as period_total_users_cnt
+    , count(distinct m2.order_id) as period_total_orders_cnt
+  from
+    _monthly_window_base m1
+  join _monthly_window_base m2
+  on
+    m1.last_active_city_id = m2.last_active_city_id
+  and
+    m1.last_active_warehouse_id = m2.last_active_warehouse_id
+  and
+    m1.last_media_source = m2.last_media_source
+  and
+    m1.last_device_operating_system = m2.last_device_operating_system
+  and
+    m2.calculation_date between date_sub(m1.calculation_date, interval 29 day) and m1.calculation_date
+  group by
+      m1.calculation_date
+    , m1.last_active_city_id
+    , m1.last_active_warehouse_id
+    , m1.last_media_source
+    , m1.last_device_operating_system
+  )
+
+  , _monthly_final as (
+  select
+      base.*
+    , coalesce(win.period_total_users_cnt, 0) as period_total_users_cnt
+    , coalesce(win.period_total_orders_cnt, 0) as period_total_orders_cnt
+  from
+    _monthly_preaggregated_base base
+  left join _monthly_window_metrics win
+  on
+    base.calculation_date = win.calculation_date
+  and
+    base.last_active_city_id = win.last_active_city_id
+  and
+    base.last_active_warehouse_id = win.last_active_warehouse_id
+  and
+    base.last_media_source = win.last_media_source
+  and
+    base.last_device_operating_system = win.last_device_operating_system
+  )
+
+select
+    'daily' as activty_type
+  , calculation_date
+  , week_start
+  , month_start
+  , last_active_city_id
+  , last_active_warehouse_id
+  , last_media_source
+  , last_device_operating_system
+  , total_users_cnt
+  , daily_users_cnt as users_cnt
+  , daily_orders_cnt as orders_cnt
+  , period_total_users_cnt
+  , period_total_orders_cnt
+  , daily_active_users_cnt as active_users_cnt
+  , daily_active_orders_cnt as active_orders_cnt
+  , daily_active_newbie_users_cnt as active_newbie_users_cnt
+  , daily_active_newbie_orders_cnt as active_newbie_orders_cnt
+  , daily_active_oldbie_users_cnt as active_oldbie_users_cnt
+  , daily_active_oldbie_orders_cnt as active_oldbie_orders_cnt
+  , daily_not_active_newbie_users_cnt as not_active_newbie_users_cnt
+  , daily_not_active_newbie_orders_cnt as not_active_newbie_orders_cnt
+  , daily_not_active_oldbie_users_cnt as not_active_oldbie_users_cnt
+  , daily_not_active_oldbie_orders_cnt as not_active_oldbie_orders_cnt
+from
+  _daily_final
+
+union all
+
+select
+    'weekly' as activty_type
+  , calculation_date
+  , week_start
+  , month_start
+  , last_active_city_id
+  , last_active_warehouse_id
+  , last_media_source
+  , last_device_operating_system
+  , total_users_cnt
+  , weekly_users_cnt as users_cnt
+  , weekly_orders_cnt as orders_cnt
+  , period_total_users_cnt
+  , period_total_orders_cnt
+  , weekly_active_users_cnt as active_users_cnt
+  , weekly_active_orders_cnt as active_orders_cnt
+  , weekly_active_newbie_users_cnt as active_newbie_users_cnt
+  , weekly_active_newbie_orders_cnt as active_newbie_orders_cnt
+  , weekly_active_oldbie_users_cnt as active_oldbie_users_cnt
+  , weekly_active_oldbie_orders_cnt as active_oldbie_orders_cnt
+  , weekly_not_active_newbie_users_cnt as not_active_newbie_users_cnt
+  , weekly_not_active_newbie_orders_cnt as not_active_newbie_orders_cnt
+  , weekly_not_active_oldbie_users_cnt as not_active_oldbie_users_cnt
+  , weekly_not_active_oldbie_orders_cnt as not_active_oldbie_orders_cnt
+from
+  _weekly_final
+
+union all
+
+select
+    'monthly' as activty_type
+  , calculation_date
+  , week_start
+  , month_start
+  , last_active_city_id
+  , last_active_warehouse_id
+  , last_media_source
+  , last_device_operating_system
+  , total_users_cnt
+  , monthly_users_cnt as users_cnt
+  , monthly_orders_cnt as orders_cnt
+  , period_total_users_cnt
+  , period_total_orders_cnt
+  , monthly_active_users_cnt as active_users_cnt
+  , monthly_active_orders_cnt as active_orders_cnt
+  , monthly_active_newbie_users_cnt as active_newbie_users_cnt
+  , monthly_active_newbie_orders_cnt as active_newbie_orders_cnt
+  , monthly_active_oldbie_users_cnt as active_oldbie_users_cnt
+  , monthly_active_oldbie_orders_cnt as active_oldbie_orders_cnt
+  , monthly_not_active_newbie_users_cnt as not_active_newbie_users_cnt
+  , monthly_not_active_newbie_orders_cnt as not_active_newbie_orders_cnt
+  , monthly_not_active_oldbie_users_cnt as not_active_oldbie_users_cnt
+  , monthly_not_active_oldbie_orders_cnt as not_active_oldbie_orders_cnt
+from
+  _monthly_final
+
+
+
