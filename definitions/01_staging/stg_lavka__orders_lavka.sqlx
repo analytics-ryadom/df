@@ -50,6 +50,7 @@ select
     launch_id,
     free_delivery,
     payment_id,
-    provider_user_id
+    provider_user_id,
+    ROW_NUMBER() OVER(PARTITION BY user_id ORDER BY created_at) as order_num
 from
     ${ref('orders_lavka')}

@@ -21,11 +21,11 @@ pre_operations {
   )
   }
 
+
 with _orders_cour as (
     select order_id,
            batch_id,
            courier_motivation_amount,
-        --    warehouse_id,
            t1.address,
            t2.lat as wh_lat,
            t2.long as wh_long,
@@ -55,7 +55,10 @@ _orders_lavka as (
                 and (t2.address = t1.street)
                 else false end is_internal_order,
             
-            case when t1.payment_id is null then "choco" else "indrive" end as platform
+            case when t1.payment_id is null then "choco" else "indrive" end as platform,
+            t1.order_num,
+            t1.status,
+            t1.is_fraud,
     from ${ref('stg_lavka__orders_lavka')} as t1
     left join ${ref('stg_lavka__warehouses')} as t2
       on t1.warehouse_id = t2.id
@@ -66,7 +69,8 @@ _orders_lavka as (
             ST_DISTANCE(
                ST_GEOGPOINT(cast(order_long as float64), cast(order_lat as float64)),
                ST_GEOGPOINT(cast(wh_long as float64), cast(wh_lat as float64))
-               ) as order_distance
+               ) as order_distance,
+            
     from _orders_lavka as t1
     left join _orders_cour as t2
     using(order_id)
