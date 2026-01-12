@@ -1,0 +1,30 @@
+config {
+    type: 'view',
+    description: 'Tables of 1C products',
+    schema: 'staging',
+    columns: table_docs.stg_c__products,
+    tags: ['1C', 'staging', 'products', 'view'],
+    name:'stg_c__products',
+    assertions: {
+        nonNull: ['id'],
+        uniqueKey: ['id']
+  }
+}
+
+select
+    guid,
+    name,
+    category_1,
+    category_2,
+    category_3,
+    main_storage_type,
+    dry_shelf,
+    chilled_shelf,
+    freezer,
+    is_promo_sku,
+    is_coffee_ob,
+    event_dt,
+    launch_id,
+    
+from
+    ${ref('c_products')}

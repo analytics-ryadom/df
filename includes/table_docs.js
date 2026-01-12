@@ -509,6 +509,23 @@ const stg_c__vat_events_parsed = {
     vat_value: "Value of the VAT"
 };
 
+const stg_c__products = {
+    guid: "The unique guid",
+    name: "Name of sku",
+    category_1: "lvl 1 category sku",
+    category_2: "lvl 2 category sku",
+    category_3: "lvl 3 category sku",
+    main_storage_type: "spetification of storage",
+    dry_shelf: "",
+    chilled_shelf: "",
+    freezer: "",
+    is_promo_sku: "it is promo sku",
+    is_coffee_ob: "it is coffe",
+    event_dt: "Event data ",
+    launch_id: "Launch or version ID",
+};
+
+
 module.exports = {
     stg_lavka__warehouses,
     stg_lavka__warehouse_products,
@@ -535,6 +552,7 @@ module.exports = {
     stg_ryadom_identity__external_providers,
     stg_promo__promocodes,
     stg_c__vat_events_parsed,
+    stg_c__products,
 
 };
 

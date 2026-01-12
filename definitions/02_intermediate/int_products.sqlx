@@ -1,0 +1,71 @@
+config {
+  type: 'view',
+  description: 'Products catalog',
+  schema: 'intermediate',
+  tags: ['intermediate', 'products', 'sku'],
+  name: 'int_products',
+  
+}
+
+
+select
+    p.analytical_category_id,
+    p.brand_id,
+    p.country,
+    p.created_at,
+    p.created_by,
+    p.daily_max_quantity,
+    p.degree_level,
+    p.degree_value,
+    p.depth,
+    p.full_description,
+    p.full_description_kk,
+    p.has_brand,
+    p.height,
+    p.id as product_id,
+    p.is_active,
+    p.is_sample,
+    p.keywords,
+    p.keywords_kk,
+    p.labels,
+    p.max_quantity,
+    p.name,
+    p.name_kk,
+    p.name_origin,
+    p.name_short,
+    p.name_short_kk,
+    p.one_day_sale,
+    p.sort_weight,
+    p.type_uuid,
+    p.updated_at,
+    p.updated_by,
+    p.uuid,
+    p.weight,
+    p.weight_visible,
+    p.width,
+    p.wine_color,
+    p.wine_sugar_content,
+    p.launch_id,
+    p.is_promo,
+    p.is_coffee,
+    p_c.guid as guid_c,
+    p_c.name as name_c,
+    p_c.category_1,
+    p_c.category_2,
+    p_c.category_3,
+    p_c.main_storage_type,
+    p_c.dry_shelf,
+    p_c.chilled_shelf,
+    p_c.freezer,
+    p_c.is_promo_sku as is_promo_c,
+    p_c.is_coffee_ob as is_coffee_c,
+    p_c.event_dt,
+
+from
+    ${ref('stg_lavka__products')} as p
+    full join ${ref('stg_c__products')} as p_c
+    on p.uuid = p_c.guid
+
+
+
+

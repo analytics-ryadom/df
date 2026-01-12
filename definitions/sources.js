@@ -208,3 +208,12 @@ declare({
   name: "c_vat_history",
 });
 
+declare({
+  database: "organic-reef-315010",
+  schema: "dds",
+  name: "c_products",
+});
+
+
+
+
