@@ -1,0 +1,25 @@
+config {
+    type: 'view',
+    description: 'Tables of 1C warehouses',
+    schema: 'staging',
+    columns: table_docs.stg_c__warehouses,
+    tags: ['1C', 'staging', 'warehouses', 'view'],
+    name:'stg_c__warehouses',
+    assertions: {
+        nonNull: ['wh_guid', 'wh_name'],
+        uniqueKey: ['wh_guid']
+  }
+}
+
+
+select
+    wh_guid,
+    wh_name,
+    parent_guid,
+    parent_name,
+    parent_guid_2,
+    parent_name_2,
+    is_micromarket,
+    
+from
+    ${ref('c_warehouses')}

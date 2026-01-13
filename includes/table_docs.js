@@ -525,6 +525,16 @@ const stg_c__products = {
     launch_id: "Launch or version ID",
 };
 
+const stg_c__warehouses = {
+    wh_guid: "The unique wh guid",
+    wh_name: "The unique guid",
+    parent_guid: "parent 1 guid",
+    parent_name: "parent 1 name",
+    parent_guid_2: "parent 2 guid",
+    parent_name_2: "parent 2 name",
+    is_micromarket: "It is micromarket",
+
+};
 
 module.exports = {
     stg_lavka__warehouses,
@@ -553,6 +563,7 @@ module.exports = {
     stg_promo__promocodes,
     stg_c__vat_events_parsed,
     stg_c__products,
+    stg_c__warehouses,
 
 };
 

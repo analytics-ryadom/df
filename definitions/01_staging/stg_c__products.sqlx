@@ -6,8 +6,8 @@ config {
     tags: ['1C', 'staging', 'products', 'view'],
     name:'stg_c__products',
     assertions: {
-        nonNull: ['id'],
-        uniqueKey: ['id']
+        nonNull: ['guid'],
+        uniqueKey: ['guid']
   }
 }
 
