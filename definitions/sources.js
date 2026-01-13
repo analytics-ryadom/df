@@ -214,6 +214,11 @@ declare({
   name: "c_products",
 });
 
+declare({
+  database: "organic-reef-315010",
+  schema: "snp",
+  name: "c_warehouses",
+});
 
 
 
