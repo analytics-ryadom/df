@@ -13,8 +13,8 @@ config {
 
 
 select
-    wh_guid,
-    wh_name,
+    wh_guid as c_guid, 
+    wh_name as c_name,
     parent_guid,
     parent_name,
     parent_guid_2,
