@@ -1,0 +1,61 @@
+config {
+  type: 'view',
+  description: 'Warehouses catalog',
+  schema: 'intermediate',
+  tags: ['intermediate', 'warehouses', 'sku'],
+  name: 'int_warehouses',
+  
+}
+
+
+select
+  w.additional_phone_number,
+    w.additional_properties,
+    w.address,
+    w.cashbox_unique_number,
+    w.city_id,
+    w.closes_at,
+    w.created_at,
+    w.created_by,
+    w.delivery_time,
+    w.delivery_zone,
+    w.delivery_zone_geo,
+    w.delivery_zone_multi_geo,
+    w.detailed_address,
+    w.force_min_amount,
+    w.geo_wkt,
+    w.has_internship,
+    w.id,
+    w.is_active,
+    w.is_functioning,
+    w.lat,
+    w.long,
+    w.min_amount,
+    w.name,
+    w.opens_at,
+    w.phone_number,
+    w.products_quantity,
+    w.updated_at,
+    w.updated_by,
+    w.uuid,
+    w.launch_id,
+    w.night_delivery_zone,
+    w.night_delivery_zone_multi_geo,
+    w.night_delivery_starts_at,
+    w.night_delivery_ends_at,
+    w_c.c_guid,
+    w_c.c_name,
+    w_c.parent_guid,
+    w_c.parent_name,
+    w_c.parent_guid_2,
+    w_c.parent_name_2,
+    w_c.is_micromarket,
+
+from
+    ${ref('stg_lavka__warehouses')} as w
+    full join ${ref('stg_c__warehouses')} as w_c
+    on w.uuid = w_c.c_guid
+
+
+
+
