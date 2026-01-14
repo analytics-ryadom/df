@@ -22,6 +22,7 @@ pre_operations {
 with
   _amplitude_base_data as ( 
     select
+        safe_cast(sa_amplitude_id as bignumeric) as sa_amplitude_id,
         safe_cast(user_id as int64) as user_id,
         event_time,
         json_value(sa_user_properties, '$."[AppsFlyer] media source"') as media_source,
@@ -46,7 +47,8 @@ select
 
     user_id,
     last_media_source,
-    last_device_operating_system
+    last_device_operating_system,
+    sa_amplitude_id
 from
     _amplitude_base_data
-group by 1,2,3,4
+group by 1,2,3,4,5
