@@ -33,7 +33,7 @@ select
     is_functioning,
     lat,
     long,
-    min_amount,
+    surge as min_amount,
     name,
     opens_at,
     phone_number,
