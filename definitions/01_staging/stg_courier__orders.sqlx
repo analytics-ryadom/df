@@ -45,7 +45,7 @@ select
     is_distant,
     leave_at_the_door,
     less_packages,
-    min_amount,
+    surge as min_amount,
     order_id,
     order_items,
     payment_method,
