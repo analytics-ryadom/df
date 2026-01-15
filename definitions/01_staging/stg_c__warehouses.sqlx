@@ -6,8 +6,8 @@ config {
     tags: ['1C', 'staging', 'warehouses', 'view'],
     name:'stg_c__warehouses',
     assertions: {
-        nonNull: ['wh_guid', 'wh_name'],
-        uniqueKey: ['wh_guid']
+        nonNull: ['c_guid', 'c_name'],
+        uniqueKey: ['c_guid']
   }
 }
 
