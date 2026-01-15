@@ -25,7 +25,7 @@ select
     delivery_zone_geo,
     delivery_zone_multi_geo,
     detailed_address,
-    force_min_amount,
+    order_min_amount as force_min_amount,
     geo_wkt,
     has_internship,
     id,
