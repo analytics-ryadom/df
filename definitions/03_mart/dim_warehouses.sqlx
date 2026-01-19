@@ -6,7 +6,6 @@ config {
   tags: ['dim', 'warehouses', 'sku'],
   name: 'dim_warehouses',
   
-  }
 }
 
 select
