@@ -1,0 +1,24 @@
+config {
+  type: 'view',
+  description: 'Parser raw data lavka astana',
+  schema: 'staging',
+  columns: {
+   id: "A unique identifier for each row",
+   raw_data: "The data of parser data in the JSON format", 
+   created_at: "The date this row signed up" 
+  },
+  tags: ['parser', 'staging', 'view'],
+  name:'stg_parser_lavka_astana',
+  assertions: {
+    nonNull: ['id', 'raw_data']
+  },
+  
+}
+
+
+select
+    id,
+    raw_data,
+    created_at
+from
+    ${ref('raw_parser_lavka_astana')}

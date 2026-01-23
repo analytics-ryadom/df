@@ -220,5 +220,65 @@ declare({
   name: "c_warehouses",
 });
 
+declare({
+  database: "organic-reef-315010",
+  schema: "parser",
+  name: "raw_parser_lavka_almaty",
+});
+
+declare({
+  database: "organic-reef-315010",
+  schema: "parser",
+  name: "raw_parser_lavka_astana",
+});
+
+declare({
+  database: "organic-reef-315010",
+  schema: "parser",
+  name: "raw_parser_airba_fresh_almaty",
+});
+
+declare({
+  database: "organic-reef-315010",
+  schema: "parser",
+  name: "raw_parser_airba_fresh_astana",
+});
+
+declare({
+  database: "organic-reef-315010",
+  schema: "parser",
+  name: "raw_parser_arbuz_almaty",
+});
+
+declare({
+  database: "organic-reef-315010",
+  schema: "parser",
+  name: "raw_parser_arbuz_astana",
+});
+
+declare({
+  database: "organic-reef-315010",
+  schema: "parser",
+  name: "raw_parser_wolt_market_almaty",
+});
+
+declare({
+  database: "organic-reef-315010",
+  schema: "parser",
+  name: "raw_parser_wolt_market_astana",
+});
+
+declare({
+  database: "organic-reef-315010",
+  schema: "parser",
+  name: "raw_parser_magnum_almaty",
+});
+
+declare({
+  database: "organic-reef-315010",
+  schema: "parser",
+  name: "raw_parser_magnum_astana",
+});
+
 
 
