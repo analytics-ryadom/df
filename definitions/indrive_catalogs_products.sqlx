@@ -48,7 +48,7 @@ select
   p.is_promo,
   p.is_coffee,
   CONCAT('https://img-proxy-lavka.choco.kz/sig/s:600:600/plain/s3://lavka//static/upload/images/lavka/products/', 
-          REGEXP_EXTRACT(i.path, r'\d{10}[-_]\d{3}\.[jp][pn]g'),
+          REGEXP_EXTRACT(i.path, r'\d{10}[-_]\d{3}\.[jp][pn]e?g'),
           '@jpeg'
            ) as image,
   CONCAT('https://web.ryadom.kz/product/', p.id) as url,
