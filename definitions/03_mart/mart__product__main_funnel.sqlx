@@ -1,0 +1,210 @@
+config {
+  type: "incremental",
+  schema: "mart",
+  tags: ["mart", "product", "funnel"],
+  name: "mart__product__main_funnel",
+  bigquery: {
+    partitionBy: "calculation_date",
+    clusterBy: ["last_active_city_id", "last_active_warehouse_id"]
+  }
+}
+
+pre_operations {
+  declare LOOKBACK_WINDOW int64;
+  declare date_checkpoint date;
+  
+  set LOOKBACK_WINDOW = 30;
+  set date_checkpoint = (
+    ${when(incremental(),
+      `ifnull(date_sub(max(calculation_date), interval 2 day), date('2025-12-01'))`,
+      `date('2025-12-01')`
+    )}
+  );
+  
+  ${when(incremental(),
+    `delete from ${self()} where calculation_date >= date_checkpoint`
+  )}
+}
+
+with
+  _int_simulation as (
+    select *
+    from ${ref('int__main_funnel')}
+    where calculation_date >= date_checkpoint
+  )
+
+  , _daily_preaggregated_base as (
+  select
+      calculation_date
+    -- , event_type
+    , event_group
+    , event_rank
+    , last_active_city_id
+    , last_active_warehouse_id
+    , last_media_source
+    , last_device_operating_system
+    , count(distinct amplitude_id) as period_total_users_cnt
+    , count(distinct case when flag_daily = 1 then amplitude_id else null end) as daily_active_users_cnt
+    , count(distinct case when newbie_flag = 1 and flag_daily = 1 then amplitude_id else null end) as daily_active_newbie_users_cnt
+    , count(distinct case when newbie_flag = 0 and flag_daily = 1 then amplitude_id else null end) as daily_active_oldbie_users_cnt
+    , count(distinct case when newbie_flag = 1 and flag_daily = 0 then amplitude_id else null end) as daily_not_active_newbie_users_cnt
+    , count(distinct case when newbie_flag = 0 and flag_daily = 0 then amplitude_id else null end) as daily_not_active_oldbie_users_cnt
+  from
+    _int_simulation
+  where
+    calculation_date > date_checkpoint
+  group by
+      calculation_date
+    -- , event_type
+    , event_group
+    , event_rank
+    , last_active_city_id
+    , last_active_warehouse_id
+    , last_media_source
+    , last_device_operating_system
+  )
+
+  , _weekly_preaggregated_base as (
+  select
+      calculation_date
+    -- , event_type
+    , event_group
+    , event_rank
+    , last_active_city_id
+    , last_active_warehouse_id
+    , last_media_source
+    , last_device_operating_system
+    , count(distinct amplitude_id) as period_total_users_cnt
+    , count(distinct case when flag_7_days = 1 then amplitude_id else null end) as weekly_active_users_cnt
+    , count(distinct case when newbie_flag = 1 and flag_7_days = 1 then amplitude_id else null end) as weekly_active_newbie_users_cnt
+    , count(distinct case when newbie_flag = 0 and flag_7_days = 1 then amplitude_id else null end) as weekly_active_oldbie_users_cnt
+    , count(distinct case when newbie_flag = 1 and flag_7_days = 0 then amplitude_id else null end) as weekly_not_active_newbie_users_cnt
+    , count(distinct case when newbie_flag = 0 and flag_7_days = 0 then amplitude_id else null end) as weekly_not_active_oldbie_users_cnt
+  from
+    _int_simulation
+  where
+    calculation_date > date_checkpoint
+  group by
+      calculation_date
+    -- , event_type
+    , event_group
+    , event_rank
+    , last_active_city_id
+    , last_active_warehouse_id
+    , last_media_source
+    , last_device_operating_system
+  )
+
+
+  , _monthly_preaggregated_base as (
+  select
+      calculation_date
+    -- , event_type
+    , event_group
+    , event_rank
+    , last_active_city_id
+    , last_active_warehouse_id
+    , last_media_source
+    , last_device_operating_system
+    , count(distinct amplitude_id) as period_total_users_cnt
+    , count(distinct case when flag_30_days = 1 then amplitude_id else null end) as monthly_active_users_cnt
+    , count(distinct case when newbie_flag = 1 and flag_30_days = 1 then amplitude_id else null end) as monthly_active_newbie_users_cnt
+    , count(distinct case when newbie_flag = 0 and flag_30_days = 1 then amplitude_id else null end) as monthly_active_oldbie_users_cnt
+    , count(distinct case when newbie_flag = 1 and flag_30_days = 0 then amplitude_id else null end) as monthly_not_active_newbie_users_cnt
+    , count(distinct case when newbie_flag = 0 and flag_30_days = 0 then amplitude_id else null end) as monthly_not_active_oldbie_users_cnt
+  from
+    _int_simulation
+  where
+    calculation_date > date_checkpoint
+  group by
+      calculation_date
+    -- , event_type
+    , event_group
+    , event_rank
+    , last_active_city_id
+    , last_active_warehouse_id
+    , last_media_source
+    , last_device_operating_system
+  )
+
+
+  , _mart_fin as (
+  select
+      'daily' as activity_type
+    , calculation_date
+    -- , event_type
+    , event_group
+    , event_rank
+    , last_active_city_id
+    , last_active_warehouse_id
+    , last_media_source
+    , last_device_operating_system
+    , period_total_users_cnt
+    , daily_active_users_cnt as active_users_cnt
+    , daily_active_newbie_users_cnt as active_newbie_users_cnt
+    , daily_active_oldbie_users_cnt as active_oldbie_users_cnt
+    , daily_not_active_newbie_users_cnt as not_active_newbie_users_cnt
+    , daily_not_active_oldbie_users_cnt as not_active_oldbie_users_cnt
+  from
+    _daily_preaggregated_base
+
+  union all
+
+  select
+      'weekly' as activity_type
+    , calculation_date
+    -- , event_type
+    , event_group
+    , event_rank
+    , last_active_city_id
+    , last_active_warehouse_id
+    , last_media_source
+    , last_device_operating_system
+    , period_total_users_cnt
+    , weekly_active_users_cnt as active_users_cnt
+    , weekly_active_newbie_users_cnt as active_newbie_users_cnt
+    , weekly_active_oldbie_users_cnt as active_oldbie_users_cnt
+    , weekly_not_active_newbie_users_cnt as not_active_newbie_users_cnt
+    , weekly_not_active_oldbie_users_cnt as not_active_oldbie_users_cnt
+  from
+    _weekly_preaggregated_base
+
+  union all
+
+  select
+      'monthly' as activity_type
+    , calculation_date
+    -- , event_type
+    , event_group
+    , event_rank
+    , last_active_city_id
+    , last_active_warehouse_id
+    , last_media_source
+    , last_device_operating_system
+    , period_total_users_cnt
+    , monthly_active_users_cnt as active_users_cnt
+    , monthly_active_newbie_users_cnt as active_newbie_users_cnt
+    , monthly_active_oldbie_users_cnt as active_oldbie_users_cnt
+    , monthly_not_active_newbie_users_cnt as not_active_newbie_users_cnt
+    , monthly_not_active_oldbie_users_cnt as not_active_oldbie_users_cnt
+  from
+    _monthly_preaggregated_base
+  )
+
+  select
+      calculation_date
+    , activity_type
+    -- , event_type
+    , event_group
+    , event_rank
+    , last_active_city_id
+    , last_active_warehouse_id
+    , last_media_source
+    , last_device_operating_system
+    , period_total_users_cnt
+    , active_users_cnt
+    , active_newbie_users_cnt
+    , active_oldbie_users_cnt
+    , not_active_newbie_users_cnt
+    , not_active_oldbie_users_cnt
+  from _mart_fin

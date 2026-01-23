@@ -1,0 +1,276 @@
+config {
+  type: "incremental",
+  schema: "intermediate",
+  tags: ["intermediate", "funnel", "amplitude"],
+  name: "int__main_funnel",
+  bigquery: {
+    partitionBy: "datetime_trunc(event_time, day)",
+    clusterBy: ["amplitude_id", "event_type"]
+  }
+}
+
+pre_operations {
+  declare date_checkpoint date;
+  set date_checkpoint = (
+    ${when(incremental(),
+      `ifnull(date_sub(max(date(event_time)), interval 2 day), date('2025-12-01'))`,
+      `date('2025-12-01')`
+    )}
+  );
+  
+  ${when(incremental(),
+    `delete from ${self()} where date(event_time) >= date_checkpoint`
+  )}
+}
+
+with
+  _amplitude_events_raw_base as (
+    select
+        event_source
+      , filled_sa_amplitude_id as amplitude_id
+      , user_id
+      , safe_cast(
+          coalesce(
+              json_value(ma_event_properties, '$.warehouseId')
+            , last_value(json_value(ma_event_properties, '$.warehouseId') ignore nulls) over(
+                partition by filled_sa_amplitude_id, sa_session_id
+                order by event_time
+                rows between unbounded preceding and unbounded following
+              )
+            , '0'
+          )
+          as integer) as warehouse_id
+      , sa_session_id as session_id
+      , case
+          when event_source = 'superapp' then platform
+          when event_source = 'ryadom' then device_family
+          else null
+        end as device_family
+      , event_type
+      , datetime(event_time, 'Asia/Almaty') as event_time
+      , coalesce(sa_event_properties, ma_event_properties) as event_properties
+      , coalesce(sa_user_properties, ma_user_properties) as user_properties
+      , case 
+          when event_type = 'started_payment' then json_value(ma_event_properties, '$.preorderId')
+          else null
+        end as preorder_id
+    from ${ref('int_amplitude__combined_events')}
+    where date(event_time) >= date_checkpoint
+      and filled_sa_amplitude_id is not null
+      and event_type in (
+          'sa_session_start'
+        , 'main_page_view'
+        , 'webapp_open'
+
+        , 'ma_custom_session_start'
+        , 'authorize_start'
+        , 'auth_display_opened'
+        , 'auth_focus_input_phone'
+        , 'auth_phone_number_entered'
+        , 'auth_accounts'
+        , 'sms_page_opened'
+        , 'auth_token_succeeded'
+        , 'close_auth'
+        , 'authorize_success'
+
+        , 'authorize_reject'
+
+        , 'search_clicked'
+        , 'entered_search'
+        , 'viewed_search_results'
+
+        , 'viewed_main_page'
+        , 'viewed_catalog'
+        , 'catalog_opened'
+        , 'all_category'
+        , 'category_selected'
+        , 'viewed_product'
+
+        , 'product_added'
+
+        , 'go_to_cart'
+        , 'viewed_cart'
+
+        , 'started_payment'
+        , 'payment_screen_loaded'
+        , 'payment_confirm'
+        , 'done_payment'
+
+        , 'problem_order'
+        -- , 'sa_session_end'
+      )
+  )
+
+  , _backend_order_data as (
+      select
+      "backend" as  event_source
+      , coalesce(a1.amplitude_id, a2.amplitude_id) as amplitude_id
+      , safe_cast(o.user_id as string) as user_id
+      , o.warehouse_id
+      , safe_cast(null as string) as session_id
+      , safe_cast(null as string) as device_family
+      , "order_created" as event_type
+      , safe_cast(created_at as datetime) as event_time
+      , safe_cast(null as json) as event_properties
+      , safe_cast(null as json) as user_properties
+      , safe_cast(o.preorder_id as string) as preorder_id
+      , safe_cast(o.preorder_id as string) as filled_preorder_id
+  from ${ref('mart_orders')} o
+    left join _amplitude_events_raw_base a1
+      on a1.preorder_id = safe_cast(o.preorder_id as string)
+        and a1.event_type = 'started_payment'
+    left join _amplitude_events_raw_base a2
+      on safe_cast(o.user_id as string) = a2.user_id
+        and a2.event_time between datetime_sub(safe_cast(created_at as datetime), interval 120 second) and safe_cast(created_at as datetime)
+        and a2.event_type = 'started_payment'
+  where date(created_at) >= date_checkpoint
+    and is_internal_order is false
+    and is_fraud is false
+    and platform = 'choco'
+  )
+
+  , _united_data as (
+    select
+        event_source
+      , amplitude_id
+      , user_id
+      , warehouse_id
+      , session_id
+      , device_family
+      , event_type
+      , event_time
+      , event_properties
+      , user_properties
+      , preorder_id
+      , last_value(preorder_id ignore nulls) over(partition by amplitude_id, session_id order by event_time rows between unbounded preceding and unbounded following) as filled_preorder_id
+    from _amplitude_events_raw_base
+
+    union all
+
+    select
+      event_source
+    , amplitude_id
+    , user_id
+    , warehouse_id
+    , session_id
+    , device_family
+    , event_type
+    , event_time
+    , event_properties
+    , user_properties
+    , preorder_id
+    , filled_preorder_id
+    from _backend_order_data
+    -- Решить что делать с теми, у кого нет фронтовых данных
+    where amplitude_id is not null 
+  )
+
+  , _int_raw as (
+    select
+        event_source
+      , amplitude_id
+      , ud.user_id
+      , flag_daily
+      , flag_7_days
+      , flag_30_days
+      , newbie_flag
+      , last_active_warehouse_id
+      , last_active_city_id
+      , last_media_source
+      , last_device_operating_system
+      , warehouse_id
+      , coalesce(
+            w.city_id
+          , 0
+      ) as city_id
+      , session_id
+      -- , device_family
+      , event_type
+      , event_time
+      , date(event_time) as calculation_date
+      , event_properties
+      , user_properties
+      -- , coalesce(preorder_id, filled_preorder_id) as preorder_id
+    from _united_data ud
+    left join ${ref('int_warehouses')} w
+      on ud.warehouse_id = w.id
+    left join
+      ${ref('int__orders__moving_aggregation')} agg
+    on
+      safe_cast(ud.user_id as int64) = agg.user_id
+    and
+      date(ud.event_time) = agg.calculation_date
+  )
+
+  , _categorized_events as (
+    select
+        erb.*
+      
+      , case
+          when event_type = 'payment_confirm' then json_value(event_properties, '$.payment_method')
+          else null
+        end as payment_method
+
+      , case
+          when event_type in (
+            'sa_session_start'
+            , 'main_page_view'
+            , 'webapp_open'
+            )
+          then 'superapp_session'
+          when event_type in (
+              'authorize_start'
+            , 'auth_display_opened'
+            , 'auth_focus_input_phone'
+            , 'auth_phone_number_entered'
+            , 'auth_accounts'
+            , 'sms_page_opened'
+            , 'auth_token_succeeded'
+            , 'close_auth'
+            )
+          then 'authorization'
+          when event_type in (
+              'go_to_cart'
+            , 'viewed_cart'
+            )
+          then 'cart'
+          when event_type in (
+              'search_clicked'
+            , 'entered_search'
+            , 'viewed_search_results'
+            , 'viewed_main_page'
+            , 'viewed_catalog'
+            , 'catalog_opened'
+            , 'all_category'
+            , 'category_selected'
+            , 'viewed_product'
+            )
+          then 'searched'
+          when event_type in (
+            'started_payment'
+          , 'payment_screen_loaded'
+          , 'payment_confirm'
+            )
+          then 'payment_started'
+          else event_type
+        end as event_group
+    from _int_raw erb
+  )
+
+  select
+    ce.*
+    , case
+        when event_group = 'superapp_session' then 1
+        when event_group = 'ma_custom_session_start' then 2
+        when event_group = 'authorization' then 3
+        when event_group = 'authorize_success' then 4
+        when event_group = 'searched' then 5
+        when event_group = 'product_added' then 6
+        when event_group = 'cart' then 7
+        when event_group = 'payment_started' then 8
+        when event_group = 'done_payment' then 9
+        when event_group = 'order_created' then 10
+        when event_group = 'problem_order' then 11
+        else 12
+      end as event_rank
+  from _categorized_events ce
