@@ -126,6 +126,7 @@ with
   where date(created_at) >= date_checkpoint
     and is_internal_order is false
     and is_fraud is false
+    and platform = 'choco'
   )
 
   , _united_data as (
