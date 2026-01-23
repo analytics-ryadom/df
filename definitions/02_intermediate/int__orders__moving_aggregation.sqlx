@@ -88,6 +88,7 @@ with
     ${ref('mart_orders')}
   where
     is_internal_order is false
+    and platform = 'choco'
   and
     date(created_at) > date_checkpoint
   group by
@@ -138,6 +139,8 @@ with
     du.user_id = o.user_id
   and
     is_internal_order is false
+  where
+    platform = 'choco'
   )
 
 , _order_base_enriched as (
