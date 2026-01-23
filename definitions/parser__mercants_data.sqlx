@@ -1,0 +1,101 @@
+config {
+  type: "incremental",
+  schema: 'parser',
+  name: 'parser__mercants_data',
+  uniqueKey: ["SOURCE", "productId", "city"],
+  tags: ['parser', 'incremental'],
+  bigquery: {
+    partitionBy: "timestamp_trunc(pars_date_created_at, day)",
+    clusterBy: ["mercant_id"],
+    updatePartitionFilter: 'pars_date_created_at >= timestamp_sub(current_timestamp(), interval 1 day)'
+  },
+  assertions: {
+    nonNull: ["id", "productId", "SOURCE"],
+    rowConditions: [
+      'PARSE_NUMERIC(price) > 0'
+    ]
+  },
+
+}
+
+
+pre_operations {
+    DECLARE timestamp_checkpoint DEFAULT (
+    ${when(incremental(),
+    `SELECT timestamp(timestamp_sub(${dataform.projectConfig.vars.execution_date}, interval 1 day))`,
+    `SELECT timestamp("2026-10-20")`)}
+  );
+
+  }
+
+
+select 
+  *
+from ${ref('int_parser_airba_fresh_almaty')} 
+    ${when(incremental(), "where TIMESTAMP_TRUNC(pars_date_created_at, day) = timestamp_checkpoint")}
+
+union DISTINCT
+
+select 
+  *
+from ${ref('int_parser_airba_fresh_astana')} 
+    ${when(incremental(), "where TIMESTAMP_TRUNC(pars_date_created_at, day) = timestamp_checkpoint")}
+     
+union DISTINCT
+
+select 
+  *
+from ${ref('int_parser_arbuz_almaty')} 
+    ${when(incremental(), "where TIMESTAMP_TRUNC(pars_date_created_at, day) = timestamp_checkpoint")}
+
+union DISTINCT
+
+select 
+  *
+from ${ref('int_parser_arbuz_astana')} 
+    ${when(incremental(), "where TIMESTAMP_TRUNC(pars_date_created_at, day) = timestamp_checkpoint")}
+
+union DISTINCT
+
+select 
+  *
+from ${ref('int_parser_lavka_almaty')} 
+    ${when(incremental(), "where TIMESTAMP_TRUNC(pars_date_created_at, day) = timestamp_checkpoint")}
+
+union DISTINCT
+
+select 
+  *
+from ${ref('int_parser_lavka_astana')} 
+    ${when(incremental(), "where TIMESTAMP_TRUNC(pars_date_created_at, day) = timestamp_checkpoint")}
+
+
+union DISTINCT
+
+select 
+  *
+from ${ref('int_parser_wolt_market_almaty')} 
+    ${when(incremental(), "where TIMESTAMP_TRUNC(pars_date_created_at, day) = timestamp_checkpoint")}
+
+union DISTINCT
+
+select 
+  *
+from ${ref('int_parser_wolt_market_astana')} 
+    ${when(incremental(), "where TIMESTAMP_TRUNC(pars_date_created_at, day) = timestamp_checkpoint")}
+
+union DISTINCT
+
+select 
+  *
+from ${ref('int_parser_magnum_almaty')} 
+    ${when(incremental(), "where TIMESTAMP_TRUNC(pars_date_created_at, day) = timestamp_checkpoint")}
+
+union DISTINCT
+
+select 
+  *
+from ${ref('int_parser_magnum_astana')} 
+    ${when(incremental(), "where TIMESTAMP_TRUNC(pars_date_created_at, day) = timestamp_checkpoint")}
+
+
