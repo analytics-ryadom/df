@@ -2,7 +2,7 @@ config {
   type: "incremental",
   schema: 'parser',
   name: 'parser__mercants_data',
-  uniqueKey: ["mercant_id", "product_id", "city"],
+  uniqueKey: ["mercant_id", "id", "city"],
   tags: ['parser', 'incremental'],
   bigquery: {
     partitionBy: "timestamp_trunc(pars_date_created_at, day)",
@@ -10,7 +10,7 @@ config {
     updatePartitionFilter: 'pars_date_created_at >= timestamp_sub(current_timestamp(), interval 1 day)'
   },
   assertions: {
-    nonNull: ["mercant_id", "product_id", "city"],
+    nonNull: ["mercant_id", "id", "city"],
     rowConditions: [
       'PARSE_NUMERIC(price) > 0'
     ]

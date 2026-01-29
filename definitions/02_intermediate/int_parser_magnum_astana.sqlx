@@ -1,6 +1,6 @@
 config {
   type: "incremental",
-  uniqueKey: ["product_id"],
+  uniqueKey: ["id"],
   schema: 'intermediate',
   name: 'int_parser_magnum_astana',
   tags: ['parser'],
@@ -10,7 +10,7 @@ config {
     updatePartitionFilter: 'pars_date_created_at >= timestamp_sub(current_timestamp(), interval 1 day)',
   },
   assertions: {
-    nonNull: ["mercant_id", "product_id", "city"],
+    nonNull: ["mercant_id", "id", "city"],
     rowConditions: [
       'PARSE_NUMERIC(price) > 0'
     ]
