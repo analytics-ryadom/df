@@ -1,16 +1,16 @@
 config {
   type: "incremental",
-  uniqueKey: ["SOURCE", "productId", "city"],
+  uniqueKey: ["product_id"],
   schema: 'intermediate',
   name: 'int_parser_magnum_astana',
   tags: ['parser'],
   bigquery: {
     partitionBy: "timestamp_trunc(pars_date_created_at, day)",
-    clusterBy: ["mercant_id"],
+    clusterBy: ["pars_date_created_at"],
     updatePartitionFilter: 'pars_date_created_at >= timestamp_sub(current_timestamp(), interval 1 day)',
   },
   assertions: {
-    nonNull: ["id", "productId", "SOURCE"],
+    nonNull: ["mercant_id", "product_id", "city"],
     rowConditions: [
       'PARSE_NUMERIC(price) > 0'
     ]
@@ -42,21 +42,8 @@ select
   SAFE_CAST(JSON_EXTRACT_SCALAR(t.raw_data, '$.time_scrap') AS TIMESTAMP) AS time_scrap,
   JSON_EXTRACT_SCALAR(t.raw_data, '$.city') AS city,
   JSON_EXTRACT_SCALAR(t.raw_data, '$.price') AS price,
-  JSON_EXTRACT_SCALAR(t.raw_data, '$.originalPrice') AS originalPrice,
-  JSON_EXTRACT_SCALAR(t.raw_data, '$.discount') AS discount,
-  JSON_EXTRACT_SCALAR(t.raw_data, '$.currency') AS currency,
-  JSON_EXTRACT_SCALAR(t.raw_data, '$.inStock') AS inStock,
-  JSON_EXTRACT_SCALAR(t.raw_data, '$.weight') AS weight,
-  JSON_EXTRACT_SCALAR(t.raw_data, '$.volume') AS volume,
-  JSON_EXTRACT_SCALAR(t.raw_data, '$.reviewCount') AS reviewCount,
-  JSON_EXTRACT_SCALAR(t.raw_data, '$.productUrl') AS productUrl,
-  JSON_EXTRACT_SCALAR(t.raw_data, '$.productId') AS productId,
-  SAFE_CAST(JSON_EXTRACT_SCALAR(t.raw_data, '$.parsedAt') AS TIMESTAMP) AS parsedAt,
-  SAFE_CAST(JSON_EXTRACT_SCALAR(t.raw_data, '$.lastUpdated') AS TIMESTAMP) AS lastUpdated,
-  JSON_EXTRACT_SCALAR(t.raw_data, '$.source') AS SOURCE,
-  JSON_EXTRACT_SCALAR(t.raw_data, '$.isActive') AS isActive,
-  SAFE_CAST(JSON_EXTRACT_SCALAR(t.raw_data, '$.createdAt') AS TIMESTAMP) AS createdAt,
-  SAFE_CAST(JSON_EXTRACT_SCALAR(t.raw_data, '$.updatedAt') AS TIMESTAMP) AS updatedAt,
+  JSON_EXTRACT_SCALAR(t.raw_data, '$.originalPrice') AS original_price,
+  JSON_EXTRACT_SCALAR(t.raw_data, '$.measure') AS measure,
   '8ee8ee38-5732-411b-9e62-228303a8de6f' as mercant_id,
   'mgm-ast' as  mercant_name,
   created_at as pars_date_created_at,
