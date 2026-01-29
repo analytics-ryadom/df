@@ -57,8 +57,10 @@ select
   JSON_EXTRACT_SCALAR(t.raw_data, '$.isActive') AS isActive,
   SAFE_CAST(JSON_EXTRACT_SCALAR(t.raw_data, '$.createdAt') AS TIMESTAMP) AS createdAt,
   SAFE_CAST(JSON_EXTRACT_SCALAR(t.raw_data, '$.updatedAt') AS TIMESTAMP) AS updatedAt,
-  JSON_EXTRACT_SCALAR(t.raw_data, '$.mercant_id') AS mercant_id,
-  JSON_EXTRACT_SCALAR(t.raw_data, '$.mercant_name') AS mercant_name,
+--   JSON_EXTRACT_SCALAR(t.raw_data, '$.mercant_id') AS mercant_id,
+--   JSON_EXTRACT_SCALAR(t.raw_data, '$.mercant_name') AS mercant_name,
+  '24c85cdd-cff6-4e60-a32c-e2193d08f964' as mercant_id,
+  'mgm-ala' as mercant_name, 
   created_at as pars_date_created_at,
 
 from ${ref('stg_parser_magnum_almaty')} as t

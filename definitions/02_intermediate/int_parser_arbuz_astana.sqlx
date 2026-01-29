@@ -57,8 +57,10 @@ select
   JSON_EXTRACT_SCALAR(t.raw_data, '$.isActive') AS isActive,
   SAFE_CAST(JSON_EXTRACT_SCALAR(t.raw_data, '$.createdAt') AS TIMESTAMP) AS createdAt,
   SAFE_CAST(JSON_EXTRACT_SCALAR(t.raw_data, '$.updatedAt') AS TIMESTAMP) AS updatedAt,
-  JSON_EXTRACT_SCALAR(t.raw_data, '$.mercant_id') AS mercant_id,
-  JSON_EXTRACT_SCALAR(t.raw_data, '$.mercant_name') AS mercant_name,
+  -- JSON_EXTRACT_SCALAR(t.raw_data, '$.mercant_id') AS mercant_id,
+  -- JSON_EXTRACT_SCALAR(t.raw_data, '$.mercant_name') AS mercant_name,
+  'e6af75c8-3f21-4bd0-8e74-184451d2ce26' as mercant_id,
+  'abz-ast' as mercant_name,
   created_at as pars_date_created_at,
 
 from ${ref('stg_parser_arbuz_astana')} as t
