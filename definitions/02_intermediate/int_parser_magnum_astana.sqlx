@@ -1,6 +1,6 @@
 config {
   type: "incremental",
-  uniqueKey: ["id"],
+  uniqueKey: ["product_id"],
   schema: 'intermediate',
   name: 'int_parser_magnum_astana',
   tags: ['parser'],
@@ -10,7 +10,7 @@ config {
     updatePartitionFilter: 'pars_date_created_at >= timestamp_sub(current_timestamp(), interval 1 day)',
   },
   assertions: {
-    nonNull: ["mercant_id", "id", "city"],
+    nonNull: ["product_id", "id", "city"],
     rowConditions: [
       'PARSE_NUMERIC(price) > 0'
     ]
@@ -41,8 +41,8 @@ select
   JSON_EXTRACT_SCALAR(t.raw_data, '$.sub_category') AS sub_category,
   SAFE_CAST(JSON_EXTRACT_SCALAR(t.raw_data, '$.time_scrap') AS TIMESTAMP) AS time_scrap,
   JSON_EXTRACT_SCALAR(t.raw_data, '$.city') AS city,
-  JSON_EXTRACT_SCALAR(t.raw_data, '$.price') AS price,
-  JSON_EXTRACT_SCALAR(t.raw_data, '$.originalPrice') AS original_price,
+  JSON_EXTRACT_SCALAR(t.raw_data, '$.cost') AS price,
+  JSON_EXTRACT_SCALAR(t.raw_data, '$.prev_cost') AS original_price,
   JSON_EXTRACT_SCALAR(t.raw_data, '$.measure') AS measure,
   '8ee8ee38-5732-411b-9e62-228303a8de6f' as mercant_id,
   'mgm-ast' as  mercant_name,
