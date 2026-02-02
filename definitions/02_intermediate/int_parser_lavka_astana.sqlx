@@ -49,7 +49,7 @@ select
   created_at as pars_date_created_at,
 
 from ${ref('stg_parser_lavka_astana')} as t
-    ${when(incremental(), "where TIMESTAMP_TRUNC(created_at, day) = timestamp_checkpoint")}
-     
+    where JSON_EXTRACT_SCALAR(t.raw_data, '$.cost') > 0
+    ${when(incremental(), "and TIMESTAMP_TRUNC(created_at, day) = timestamp_checkpoint")}
 
 
