@@ -1,0 +1,45 @@
+config {
+  type: "incremental",
+  schema: "mart",
+  name: "mart__multisearch_sessions_counts",
+  tags: ["mart", "sessions", "daily"],
+  bigquery: {
+    partitionBy: "date_"
+  }
+}
+
+js {
+  const FULL_REFRESH_START_DATE = '2025-11-20';
+}
+
+pre_operations {
+  declare date_checkpoint date;
+
+  set date_checkpoint = (
+    ${when(incremental(),
+      `select ifnull(max(date_), date('${FULL_REFRESH_START_DATE}')) from ${self()}`,
+      `date('${FULL_REFRESH_START_DATE}')`
+    )}
+  );
+
+  ${when(incremental(),
+    `delete from ${self()} where date_ >= date_checkpoint`
+  )}
+}
+
+with
+  _source_data as (
+  select
+      date(event_time) as date_
+    , session_id
+  from ${ref('stg_amplitude__events')}
+  where date(event_time) >= date_checkpoint
+  )
+
+select
+    date_
+  , count(distinct session_id) as sessions
+from _source_data
+group by
+    date_
+
