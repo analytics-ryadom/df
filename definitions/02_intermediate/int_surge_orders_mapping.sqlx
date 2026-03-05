@@ -20,8 +20,14 @@ pre_operations {
     `SELECT timestamp(timestamp_sub(${dataform.projectConfig.vars.execution_date}, interval 3 month))`)}
   );
 
+    DECLARE timestamp_checkpoint_surge DEFAULT (
+    ${when(incremental(),
+    `SELECT timestamp(timestamp_sub(${dataform.projectConfig.vars.execution_date}, interval 4 day))`,
+    `SELECT timestamp(timestamp_sub(${dataform.projectConfig.vars.execution_date}, interval 3 month))`)}
+  );
+
   delete from ${self()}
-  where po_created_at >= timestamp_checkpoint;
+  where ord_created_at >= timestamp_checkpoint;
   }
 
 with 
@@ -46,7 +52,7 @@ _surge as (
         min_amount_enabled,
         min_amount
     from ${ref('stg_lavka_surge__surge_logs')}
-    where decision_made_at >= timestamp_checkpoint
+    where decision_made_at >= timestamp_checkpoint_surge
 )
 
 select  t5.surge_id,
