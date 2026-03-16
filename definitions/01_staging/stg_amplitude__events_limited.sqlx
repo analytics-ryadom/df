@@ -4,7 +4,7 @@ config {
   schema: 'staging',
   columns: table_docs.stg_courier__orders,
   tags: ['segment'],
-  name:'stg_amplitude__events',
+  name:'stg_amplitude__events_limited',
 }
 
 select
@@ -58,3 +58,4 @@ select
     version_name
 from
     ${ref('EVENTS_296820')}
+where event_time >= cast(datetime_sub(current_datetime(), interval 14 day) as timestamp)

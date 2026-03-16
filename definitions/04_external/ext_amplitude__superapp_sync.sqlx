@@ -106,3 +106,8 @@ select
   , event_id
   , group_properties
 from _base
+where m_user_id in (
+    '15093366'
+  , '10056948'
+  , '11327148'
+  ) -- test users list to delete after testing

@@ -14,7 +14,7 @@ with
     , device_id as m_device_id
     , session_id as m_session_id
     , safe_cast(json_value(event_properties, "$.amplitude_session_id") as string) as parsed_session_id
-  from ${ref('stg_amplitude__events')}
+  from ${ref('stg_amplitude__events_limited')}
   where event_type in ('init', 'reconnect_to_app')
   )
 
