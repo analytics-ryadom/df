@@ -53,6 +53,7 @@ with
     from(
       select
         'superapp' as event_source,
+        adid,
         safe_cast(null as string) as ma_amplitude_id,
         safe_cast(amplitude_id as string) as sa_amplitude_id,
         user_properties as sa_user_properties,
@@ -118,6 +119,7 @@ with
 
 select
   event_source,
+  adid,
   ma_amplitude_id,
   sa_amplitude_id,
   sa_user_properties,

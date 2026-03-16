@@ -1,0 +1,44 @@
+config {
+  type: 'view',
+  description: 'Mapping of superapp amplitude_id to miniapp amplitude_id/user_id/device_id via session linking',
+  schema: 'intermediate',
+  tags: ['amplitude', 'intermediate', 'sync'],
+  name: 'int_amplitude__superapp_sync_ids',
+}
+
+with
+  _miniapp_sessions as (
+  select distinct
+      amplitude_id as m_amplitude_id
+    , user_id as m_user_id
+    , device_id as m_device_id
+    , session_id as m_session_id
+    , safe_cast(json_value(event_properties, "$.amplitude_session_id") as string) as parsed_session_id
+  from ${ref('stg_amplitude__events')}
+  where event_type in ('init', 'reconnect_to_app')
+  )
+
+  , _ids_links as (
+  select
+      s.sa_amplitude_id
+    , max(m.m_amplitude_id) as m_amplitude_id
+    , max(m.m_user_id) as m_user_id
+    , max(m.m_device_id) as m_device_id
+    , max(m.m_session_id) as m_session_id
+    , s.sa_session_id as parsed_session_id
+  from ${ref('stg_amplitude__superapp_events_view')} s
+  left join _miniapp_sessions m
+    on s.sa_session_id = m.parsed_session_id
+  group by
+      s.sa_amplitude_id
+    , s.sa_session_id
+  )
+
+select
+    sa_amplitude_id
+  , m_amplitude_id
+  , m_user_id
+  , m_device_id
+  , m_session_id
+  , parsed_session_id
+from _ids_links

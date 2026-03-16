@@ -1,0 +1,108 @@
+config {
+  type: 'incremental',
+  description: 'Superapp events enriched with miniapp IDs for Amplitude Batch API sync',
+  schema: 'external',
+  tags: ['amplitude', 'external', 'sync'],
+  name: 'ext_amplitude__superapp_sync',
+  bigquery: {
+    partitionBy: 'timestamp_trunc(event_time, hour)',
+    updatePartitionFilter:
+        'event_time >= timestamp_sub(current_timestamp(), interval 2 hour)',
+    clusterBy: ['user_id', 'event_type']
+  },
+}
+
+pre_operations {
+  declare timestamp_checkpoint timestamp;
+
+  set timestamp_checkpoint = (
+    ${when(incremental(),
+    `select timestamp_sub(max(event_time), interval 2 hour)
+      from ${self()}
+      limit 1`,
+    `timestamp("2026-03-09")`)
+    }
+  );
+
+  ${when(incremental(),
+      `delete from ${self()} where event_time >= timestamp_checkpoint`
+      )}
+}
+
+with
+  _base as (
+  select
+      s.event_time
+    , l.m_user_id
+    , s.user_id as s_user_id
+    , l.m_device_id
+    , s.device_id as s_device_id
+    , l.m_session_id
+    , s.sa_session_id as s_session_id
+    , unix_millis(s.event_time) as event_time_unix
+    , s.event_type
+    , s.uuid
+    , s.version_name
+    , s.platform
+    , s.os_name
+    , s.os_version
+    , s.device_brand
+    , s.device_manufacturer
+    , s.device_model
+    , s.device_carrier
+    , s.country
+    , s.region
+    , s.city
+    , s.dma
+    , s.ip_address
+    , s.location_lat
+    , s.location_lng
+    , s.language
+    , s.idfa
+    , s.adid
+    , s.sa_event_properties as event_properties
+    , s.sa_user_properties as user_properties
+    , s.`groups`
+    , s.server_upload_time
+    , s.event_id
+    , s.group_properties
+  from ${ref('stg_amplitude__superapp_events')} s
+  left join ${ref('int_amplitude__superapp_sync_ids')} l
+    on s.sa_amplitude_id = l.sa_amplitude_id
+    and s.sa_session_id = l.parsed_session_id
+  where s.event_time >= timestamp_checkpoint
+  )
+
+select
+    event_time
+  , coalesce(m_user_id, s_user_id) as user_id
+  , coalesce(m_device_id, s_device_id) as device_id
+  , event_time_unix as time
+  , event_type
+  , uuid
+  , version_name
+  , platform
+  , os_name
+  , os_version
+  , device_brand
+  , device_manufacturer
+  , device_model
+  , device_carrier as carrier
+  , country
+  , region
+  , city
+  , dma
+  , ip_address as ip
+  , location_lat
+  , location_lng
+  , language
+  , idfa
+  , adid
+  , coalesce(m_session_id, s_session_id) as session_id
+  , event_properties
+  , user_properties
+  , `groups`
+  , server_upload_time
+  , event_id
+  , group_properties
+from _base

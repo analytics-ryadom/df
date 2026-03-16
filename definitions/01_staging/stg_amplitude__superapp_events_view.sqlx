@@ -1,0 +1,126 @@
+config {
+  type: 'view',
+  description: 'View for stg_amplitude__superapp_events based on raw EVENTS_415371',
+  schema: 'staging',
+  tags: ['amplitude', 'staging'],
+  name: 'stg_amplitude__superapp_events_view',
+}
+
+with
+  _source_data as (
+  select
+      'superapp' as event_source
+    , adid
+    , safe_cast(null as string) as ma_amplitude_id
+    , safe_cast(amplitude_id as string) as sa_amplitude_id
+    , user_properties as sa_user_properties
+    , event_properties as sa_event_properties
+    , safe_cast(null as json) as ma_user_properties
+    , safe_cast(null as json) as ma_event_properties
+    , event_time
+    , case
+        when lower(event_type) like 'session_start' then 'sa_session_start'
+        when lower(event_type) like 'session_end' then 'sa_session_end'
+        else event_type
+      end as event_type
+    , safe_cast(session_id as string) as sa_session_id
+    , safe_cast(null as string) as ma_session_id
+    , app
+    , city
+    , client_event_time
+    , client_upload_time
+    , country
+    , `data`
+    , device_brand
+    , device_carrier
+    , device_family
+    , device_id
+    , device_manufacturer
+    , device_model
+    , device_type
+    , dma
+    , event_id
+    , followed_an_identify
+    , group_properties
+    , `groups`
+    , idfa
+    , ip_address
+    , is_attribution_event
+    , language
+    , library
+    , location_lat
+    , location_lng
+    , os_name
+    , os_version
+    , paying
+    , platform
+    , processed_time
+    , region
+    , sample_rate
+    , server_received_time
+    , server_upload_time
+    , session_id
+    , start_version
+    , user_creation_time
+    , user_id
+    , uuid
+    , version_name
+    , row_number() over(partition by uuid) as rn
+  from ${ref('EVENTS_415371')}
+  )
+
+select
+    event_source
+  , adid
+  , ma_amplitude_id
+  , sa_amplitude_id
+  , sa_user_properties
+  , sa_event_properties
+  , ma_user_properties
+  , ma_event_properties
+  , event_time
+  , event_type
+  , sa_session_id
+  , ma_session_id
+  , app
+  , city
+  , client_event_time
+  , client_upload_time
+  , country
+  , `data`
+  , device_brand
+  , device_carrier
+  , device_family
+  , device_id
+  , device_manufacturer
+  , device_model
+  , device_type
+  , dma
+  , event_id
+  , followed_an_identify
+  , group_properties
+  , `groups`
+  , idfa
+  , ip_address
+  , is_attribution_event
+  , language
+  , library
+  , location_lat
+  , location_lng
+  , os_name
+  , os_version
+  , paying
+  , platform
+  , processed_time
+  , region
+  , sample_rate
+  , server_received_time
+  , server_upload_time
+  , session_id
+  , start_version
+  , user_creation_time
+  , user_id
+  , uuid
+  , version_name
+from _source_data
+where rn = 1
