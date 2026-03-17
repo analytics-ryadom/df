@@ -19,7 +19,8 @@ pre_operations {
 with 
 _order_items as (
     select order_id,
-           count(*) as n_items
+           count(*) as n_items,
+           sum(original_price)/100 as original_price
     from ${ref('stg_lavka__order_items')}
     where scanned_at >= timestamp_checkpoint
     group by 1
@@ -41,6 +42,7 @@ _additional_order_items as (
 select  
         t2.order_id,
         t2.n_items,
+        t2.original_price,
         t22.service_fee_purchase,
         t22.delivery_fee_purchase,
         coalesce(t22.service_fee_price, 0) as service_fee_price,
