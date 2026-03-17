@@ -71,6 +71,7 @@ with
     on s.sa_amplitude_id = l.sa_amplitude_id
     and s.sa_session_id = l.m_parsed_session_id
   where s.event_time >= timestamp_checkpoint
+    and s.sa_amplitude_id in ('516824296497', '645274143393', '406631785631') -- test users list to delete after testing
   )
 
 select
