@@ -16,19 +16,22 @@ with
     , safe_cast(json_value(event_properties, "$.amplitude_session_id") as string) as parsed_session_id
   from ${ref('stg_amplitude__events_limited')}
   where event_type in ('init', 'reconnect_to_app')
+    and amplitude_id in ('201422701641', '539850960080', '978645321737') -- test users list to delete after testing
   )
 
   , _ids_links as (
   select
       s.sa_amplitude_id
+    , s.sa_session_id
     , max(m.m_amplitude_id) as m_amplitude_id
     , max(m.m_user_id) as m_user_id
     , max(m.m_device_id) as m_device_id
     , max(m.m_session_id) as m_session_id
-    , s.sa_session_id as parsed_session_id
+    , max(m.parsed_session_id) as m_parsed_session_id
   from ${ref('stg_amplitude__superapp_events_view')} s
   left join _miniapp_sessions m
     on s.sa_session_id = m.parsed_session_id
+  where s.sa_amplitude_id in ('516824296497', '645274143393', '406631785631') -- test users list to delete after testing
   group by
       s.sa_amplitude_id
     , s.sa_session_id
@@ -40,5 +43,5 @@ select
   , m_user_id
   , m_device_id
   , m_session_id
-  , parsed_session_id
+  , m_parsed_session_id
 from _ids_links
