@@ -66,10 +66,10 @@ with
     , s.server_upload_time
     , s.event_id
     , s.group_properties
-  from ${ref('stg_amplitude__superapp_events')} s
+  from ${ref('stg_amplitude__superapp_events_view')} s
   left join ${ref('int_amplitude__superapp_sync_ids')} l
     on s.sa_amplitude_id = l.sa_amplitude_id
-    and s.sa_session_id = l.parsed_session_id
+    and s.sa_session_id = l.m_parsed_session_id
   where s.event_time >= timestamp_checkpoint
   )
 
@@ -106,8 +106,3 @@ select
   , event_id
   , group_properties
 from _base
-where m_user_id in (
-    '15093366'
-  , '10056948'
-  , '11327148'
-  ) -- test users list to delete after testing
