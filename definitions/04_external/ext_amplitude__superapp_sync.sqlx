@@ -100,7 +100,13 @@ select
   , idfa
   , adid
   , coalesce(m_session_id, s_session_id) as session_id
-  , event_properties
+  , json_set(
+      json_set(
+        event_properties,
+        '$.currentApp', 'miniApp'
+        ),
+      '$.event_source', 'choco_superapp'
+   ) as event_properties
   , user_properties
   , `groups`
   , server_upload_time
