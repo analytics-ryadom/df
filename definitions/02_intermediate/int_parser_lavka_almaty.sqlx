@@ -21,9 +21,7 @@ config {
 
 pre_operations {
     DECLARE timestamp_checkpoint DEFAULT (
-    ${when(incremental(),
-    `SELECT timestamp(timestamp_sub(${dataform.projectConfig.vars.execution_date}, interval 1 day))`,
-    `SELECT timestamp("2026-10-20")`)}
+    SELECT timestamp(timestamp_sub(${dataform.projectConfig.vars.execution_date}, interval 1 day))
   );
 
   }
@@ -44,13 +42,15 @@ select
   JSON_EXTRACT_SCALAR(t.raw_data, '$.cost') AS price,
   JSON_EXTRACT_SCALAR(t.raw_data, '$.prev_cost') AS original_price,
   JSON_EXTRACT_SCALAR(t.raw_data, '$.measure') AS measure,
+  CASE 
+    WHEN JSON_EXTRACT_SCALAR(t.raw_data, '$.inStock') is null THEN TRUE
+    ELSE CAST(JSON_EXTRACT_SCALAR(t.raw_data, '$.inStock') as Bool)
+  END AS in_stock,
   '6b4d4af5-0de0-4984-9db7-c8c70cd45f7d' as mercant_id,
   'lavka-ala' as mercant_name,
   created_at as pars_date_created_at,
 
 from ${ref('stg_parser_lavka_almaty')} as t
-  where CAST(JSON_EXTRACT_SCALAR(t.raw_data, '$.cost') AS INT64) > 0
-    ${when(incremental(), "and TIMESTAMP_TRUNC(created_at, day) = timestamp_checkpoint")}
+  where (JSON_EXTRACT_SCALAR(t.raw_data, '$.inStock') is null or JSON_EXTRACT_SCALAR(t.raw_data, '$.inStock')  = 'true')
+    ${when(incremental(), "AND TIMESTAMP_TRUNC(created_at, day) = timestamp_checkpoint")}
      
-
-
