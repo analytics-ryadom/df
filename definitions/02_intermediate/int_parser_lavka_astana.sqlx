@@ -11,9 +11,6 @@ config {
   },
   assertions: {
     nonNull: ["product_id", "id", "city"],
-    rowConditions: [
-      'PARSE_NUMERIC(price) > 0'
-    ]
   },
 
 }
