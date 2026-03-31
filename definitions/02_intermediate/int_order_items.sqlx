@@ -29,9 +29,11 @@ _order_items as (
 _additional_order_items as (
     select order_id,
            count(case when ap.id = 3 then aoi.id end) > 0 as service_fee_purchase,
-           count(case when ap.id != 3 then aoi.id end) > 0 as delivery_fee_purchase,
+           count(case when ap.id = 2 then aoi.id end) > 0 as delivery_fee_purchase,
+           count(case when ap.id = 1 then aoi.id end) > 0 as yandex_delivery_fee_purchase,
            sum(case when ap.id = 3 then aoi.price end)/100 as service_fee_price,
-           sum(case when ap.id != 3 then aoi.price end)/100 as delivery_fee_price,
+           sum(case when ap.id = 2 then aoi.price end)/100 as delivery_fee_price,
+           sum(case when ap.id = 1 then aoi.price end)/100 as yandex_delivery_fee_price,
            sum(aoi.price)/100 as total_additional_price
     from ${ref('stg_lavka__additional_order_items')} aoi
         join ${ref('stg_lavka__additional_products')} ap on ap.id = aoi.product_id
@@ -45,8 +47,10 @@ select
         t2.original_price,
         t22.service_fee_purchase,
         t22.delivery_fee_purchase,
+        t22.yandex_delivery_fee_purchase,
         coalesce(t22.service_fee_price, 0) as service_fee_price,
         coalesce(t22.delivery_fee_price, 0) as delivery_fee_price,
+        coalesce(t22.yandex_delivery_fee_price, 0) as yandex_delivery_fee_price,
         coalesce(t22.total_additional_price, 0) as total_additional_price
 from _order_items as t2
 left join _additional_order_items t22
