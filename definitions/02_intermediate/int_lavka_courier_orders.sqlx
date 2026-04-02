@@ -57,7 +57,7 @@ _orders_lavka as (
             
             case when t1.payment_id is null then "choco" else "indrive" end as platform,
             t1.order_num,
-            COALESCE(t1.payment_id, '00000000-0000-0000-0000-000000000000') as payment_id,
+            t1.payment_id as payment_id,
             t1.status,
             t1.is_fraud,
     from ${ref('stg_lavka__orders_lavka')} as t1
