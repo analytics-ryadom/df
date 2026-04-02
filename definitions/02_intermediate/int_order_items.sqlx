@@ -22,7 +22,8 @@ _order_items as (
            count(*) as n_items,
            sum(original_price)/100 as original_price
     from ${ref('stg_lavka__order_items')}
-    where scanned_at >= timestamp_checkpoint
+    -- where scanned_at >= timestamp_checkpoint
+    where created_at >= timestamp_checkpoint
     group by 1
 ),
 
