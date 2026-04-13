@@ -1,0 +1,89 @@
+config {
+  type: 'incremental',
+  description: 'InDrive superapp events mapped to Amplitude schema for Batch API sync',
+  schema: 'external',
+  tags: ['amplitude', 'external', 'sync', 'indrive'],
+  name: 'ext_amplitude__indrive_sync',
+  bigquery: {
+    partitionBy: 'timestamp_trunc(event_time, day)',
+    updatePartitionFilter:
+        'event_time >= timestamp_sub(current_timestamp(), interval 1 day)',
+    clusterBy: ['user_id', 'event_type']
+  },
+}
+
+pre_operations {
+  declare timestamp_checkpoint timestamp;
+
+  set timestamp_checkpoint = (
+    ${when(incremental(),
+    `select timestamp_sub(max(event_time), interval 1 day)
+      from ${self()}
+      limit 1`,
+    `timestamp("2026-03-01")`)}
+  );
+
+  ${when(incremental(),
+      `delete from ${self()} where event_time >= timestamp_checkpoint`
+      )}
+}
+
+with
+  _ids_linking as (
+  select
+      internal_user_id
+    , external_user_id
+  from ${ref('stg_ryadom_identity__internal_external_user_links')}
+  where external_provider_id = 1
+  qualify row_number() over (partition by internal_user_id order by created_at desc) = 1
+  )
+
+  , _base as (
+  select
+      s.event_time
+    , s.server_upload_time
+    , unix_millis(s.event_time) as time
+    , s.event_type
+    , s.uuid
+    , s.app_session_id as session_id
+    , s.app_version as version_name
+    , s.platform
+    , s.country_code as country
+    , s.external_user_id as indrive_user_id
+    , cast(il.internal_user_id as string) as user_id
+    , s.payload
+  from ${ref('stg_indrive__superapp_events')} s
+  join _ids_linking il
+    on s.external_user_id = il.external_user_id
+  where s.event_time >= timestamp_checkpoint
+    and il.internal_user_id in (15093366) -- test users list to delete after testing
+  )
+
+select
+    event_time
+  , user_id
+  , time
+  , event_type
+  , uuid
+  , session_id
+  , version_name
+  , platform
+  , country
+  , server_upload_time
+  , struct(
+      'miniApp_inDrive' as currentApp
+    , json_extract_scalar(payload, '$.amount') as amount
+    , json_extract_scalar(payload, '$.defaultMethod') as defaultMethod
+    , json_extract_scalar(payload, '$.error_code') as error_code
+    , json_extract_scalar(payload, '$.error_message') as error_message
+    , json_extract_scalar(payload, '$.card_id') as card_id
+    , json_extract_scalar(payload, '$.flow') as flow
+    , json_extract_scalar(payload, '$.is_auto_flow') as is_auto_flow
+    , json_extract_scalar(payload, '$.prefilled_method') as prefilled_method
+    , json_extract_scalar(payload, '$.payment_id') as payment_id
+    , json_extract_scalar(payload, '$.result') as result
+    , json_extract_scalar(payload, '$.payment_method') as payment_method
+    , json_extract_scalar(payload, '$.payment_option') as payment_option
+    , json_extract_scalar(payload, '$.provider_name') as provider_name
+    ) as event_properties
+from _base

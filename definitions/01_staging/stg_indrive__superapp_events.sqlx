@@ -1,0 +1,27 @@
+config {
+  type: 'view',
+  description: 'Parsed InDrive superapp events with unnested JSON payload',
+  schema: 'staging',
+  tags: ['indrive', 'staging', 'amplitude', 'sync'],
+  name: 'stg_indrive__superapp_events',
+}
+
+select
+    id
+  , safe.parse_timestamp('%Y-%m-%dT%H:%M:%E*SZ', json_extract_scalar(event_data, '$.timestamp')) as event_time
+  , safe.parse_timestamp('%Y-%m-%dT%H:%M:%E*SZ', json_value(event_data, '$.ingestion_ts')) as server_upload_time
+  , json_value(event_data, '$.name') as event_name
+  , array_to_string(split(json_value(event_data, '$.name'), '.'), '_') as event_type
+  , json_value(event_data, '$.event_id') as uuid
+  , json_value(event_data, '$.app_source') as app_source
+  , json_value(event_data, '$.client_time') as client_time
+  , json_value(event_data.context, '$.app_session_id') as app_session_id
+  , json_value(event_data.context, '$.app_version') as app_version
+  , json_value(event_data.context, '$.country_code') as country_code
+  , json_value(event_data.context, '$.platform') as platform
+  , json_value(event_data, '$.seqnum') as seqnum
+  , json_extract_scalar(event_data.payload, '$.user_id') as external_user_id
+  , event_data.payload as payload
+  , created_at
+from ${ref('superapp_events')}
+  , unnest(json_extract_array(raw_data)) as event_data

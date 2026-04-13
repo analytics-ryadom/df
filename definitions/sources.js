@@ -280,5 +280,8 @@ declare({
   name: "raw_parser_magnum_astana",
 });
 
-
-
+declare({
+  database: "organic-reef-315010",
+  schema: "indrive",
+  name: "superapp_events",
+});
