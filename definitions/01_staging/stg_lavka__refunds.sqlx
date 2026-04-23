@@ -1,0 +1,27 @@
+config {
+    type: 'view',
+    description: 'Tables of refunds',
+    schema: 'staging',
+    columns: table_docs.stg_product_images,
+    tags: ['lavka', 'staging', 'products', 'refunds', 'view'],
+    name:'stg_lavka__refunds',
+    assertions: {
+        nonNull: ['id'],
+        uniqueKey: ['id']
+  }
+}
+
+select
+    created_at,
+    id,
+    idempotency_key,
+    order_id,
+    price,
+    reference,
+    refunded_at,
+    response_data,
+    type,
+    uuid,
+    launch_id,   
+from
+    ${ref('refunds')}

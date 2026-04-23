@@ -30,6 +30,12 @@ declare({
 
 declare({
   database: "organic-reef-315010",
+  schema: "snp",
+  name: "refunds",
+});
+
+declare({
+  database: "organic-reef-315010",
   schema: "indrive",
   name: "financial_metrics-transactions",
 });
