@@ -20,7 +20,7 @@ with
 _order_items as (
     select order_id,
            count(*) as n_items,
-           sum(original_price)/100 as original_price
+           sum(original_price)/100 as original_price,
            sum(price)/100 as price
     from ${ref('stg_lavka__order_items')}
     -- where scanned_at >= timestamp_checkpoint
