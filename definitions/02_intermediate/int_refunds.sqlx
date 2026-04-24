@@ -1,0 +1,29 @@
+config {
+  type: 'incremental',
+  uniqueKey: ["order_id"],
+  description: 'refunds',
+  schema: 'intermediate',
+  tags: ['intermediate', 'refunds',],
+  name: 'int_refunds',
+  
+}
+
+pre_operations {
+    DECLARE timestamp_checkpoint DEFAULT (
+    ${when(incremental(),
+    `SELECT timestamp(timestamp_sub(${dataform.projectConfig.vars.execution_date}, interval 3 day))`,
+    `SELECT timestamp("2022-01-01")`)}
+  )
+  }
+
+
+  select 
+    order_id,
+    count(*) as refunded_count,
+    sum(price)/100 as refund_amount,
+  from ${ref('stg_lavka__refunds')} as ref
+  where ref.created_at >= timestamp_checkpoint
+  group by 1
+
+
+
