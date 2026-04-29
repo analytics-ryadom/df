@@ -21,9 +21,8 @@ pre_operations {
     order_id,
     count(*) as refunded_count,
     sum(price)/100 as refund_amount,
-  from ${ref('stg_lavka__refunds')} as ref
-  where ref.created_at >= timestamp_checkpoint
+  from ${ref('stg_lavka__refunds')} as r
+  where r.created_at >= timestamp_checkpoint
+  and r.refunded_at is not null
   group by 1
-
-
 
