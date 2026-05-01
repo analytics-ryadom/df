@@ -73,7 +73,7 @@ SELECT
   id, 
   raw_data, 
   created_at, 
-  '24c85cdd-cff6-4e60-a32c-e2193d08f964' as mercant_id, 
+  'e9f61a9b-7006-4c75-837f-2bc601793751' as mercant_id, 
   'magnum-ala' as mercant_name 
 FROM  ${ref('raw_parser_magnum_almaty')}
 WHERE not JSON_VALUE(raw_data, '$.category_full_path')  in
@@ -107,7 +107,7 @@ SELECT
   id, 
   raw_data, 
   created_at, 
-  '8ee8ee38-5732-411b-9e62-228303a8de6f' as mercant_id, 
+  '73236c3a-2ae4-4fbd-aa14-9ef47dc7d4ae' as mercant_id, 
   'magnum-ast' as mercant_name 
 FROM  ${ref('raw_parser_magnum_astana')}
 WHERE not JSON_VALUE(raw_data, '$.category_full_path')  in
