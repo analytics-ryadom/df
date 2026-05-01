@@ -12,88 +12,13 @@ config {
   assertions: {
     nonNull: ["mercant_id", "product_id", "city"],
     rowConditions: [
-      'PARSE_NUMERIC(price) > 0'
+      'SAFE_CAST(price as BIGNUMERIC) > 0'
     ]
   },
 
 }
 
-
-pre_operations {
-    DECLARE timestamp_checkpoint DEFAULT (
-    SELECT timestamp(timestamp_sub(${dataform.projectConfig.vars.execution_date}, interval 1 day))
-  );
-
-  }
-
-
 select 
   *
-from ${ref('int_parser_airba_fresh_almaty')} 
-    ${when(incremental(), "where TIMESTAMP_TRUNC(pars_date_created_at, day) = timestamp_checkpoint")}
-
-union DISTINCT
-
-select 
-  *
-from ${ref('int_parser_airba_fresh_astana')} 
-    ${when(incremental(), "where TIMESTAMP_TRUNC(pars_date_created_at, day) = timestamp_checkpoint")}
-     
-union DISTINCT
-
-select 
-  *
-from ${ref('int_parser_arbuz_almaty')} 
-    ${when(incremental(), "where TIMESTAMP_TRUNC(pars_date_created_at, day) = timestamp_checkpoint")}
-
-union DISTINCT
-
-select 
-  *
-from ${ref('int_parser_arbuz_astana')} 
-    ${when(incremental(), "where TIMESTAMP_TRUNC(pars_date_created_at, day) = timestamp_checkpoint")}
-
-union DISTINCT
-
-select 
-  *
-from ${ref('int_parser_lavka_almaty')} 
-    ${when(incremental(), "where TIMESTAMP_TRUNC(pars_date_created_at, day) = timestamp_checkpoint")}
-
-union DISTINCT
-
-select 
-  *
-from ${ref('int_parser_lavka_astana')} 
-    ${when(incremental(), "where TIMESTAMP_TRUNC(pars_date_created_at, day) = timestamp_checkpoint")}
-
-
-union DISTINCT
-
-select 
-  *
-from ${ref('int_parser_wolt_market_almaty')} 
-    ${when(incremental(), "where TIMESTAMP_TRUNC(pars_date_created_at, day) = timestamp_checkpoint")}
-
-union DISTINCT
-
-select 
-  *
-from ${ref('int_parser_wolt_market_astana')} 
-    ${when(incremental(), "where TIMESTAMP_TRUNC(pars_date_created_at, day) = timestamp_checkpoint")}
-
-union DISTINCT
-
-select 
-  *
-from ${ref('int_parser_magnum_almaty')} 
-    ${when(incremental(), "where TIMESTAMP_TRUNC(pars_date_created_at, day) = timestamp_checkpoint")}
-
-union DISTINCT
-
-select 
-  *
-from ${ref('int_parser_magnum_astana')} 
-    ${when(incremental(), "where TIMESTAMP_TRUNC(pars_date_created_at, day) = timestamp_checkpoint")}
-
-
+from ${ref('int_parser_combined')} 
+    ${when(incremental(), `where pars_date_created_at > (select max(pars_date_created_at) from ${self()})`)}
