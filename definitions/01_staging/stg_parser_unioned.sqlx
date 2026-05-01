@@ -1,0 +1,109 @@
+config {
+  type: 'view',
+  description: 'Union of all raw parser tables',
+  schema: 'staging',
+  tags: ['parser', 'staging', 'view'],
+  name: 'stg_parser_unioned',
+  assertions: {
+    nonNull: ['id', 'raw_data']
+  }
+}
+
+SELECT 
+  id, 
+  raw_data, 
+  created_at, 
+  'edf30565-d0d9-40ec-9759-6fde57220037' as mercant_id, 
+  'air-ala' as mercant_name 
+FROM ${ref('raw_parser_airba_fresh_almaty')}
+
+UNION ALL
+
+SELECT 
+  id, 
+  raw_data, 
+  created_at, 
+  '7f67b894-86a9-4c2b-935d-123868b863cb' as mercant_id, 
+  'air-ast' as mercant_name 
+FROM ${ref('raw_parser_airba_fresh_astana')}
+
+UNION ALL
+
+SELECT 
+  id, 
+  raw_data, 
+  created_at, 
+  '8bfdb88d-c8cc-4c2f-a363-e545296066b8' as mercant_id, 
+  'arbuz-ala' as mercant_name 
+FROM ${ref('raw_parser_arbuz_almaty')}
+
+UNION ALL
+
+SELECT 
+  id, 
+  raw_data, 
+  created_at, 
+  'e6af75c8-3f21-4bd0-8e74-184451d2ce26' as mercant_id, 
+  'arbuz-ast' as mercant_name 
+FROM  ${ref('raw_parser_arbuz_astana')}
+
+UNION ALL
+
+SELECT 
+  id, 
+  raw_data, 
+  created_at, 
+  '6b4d4af5-0de0-4984-9db7-c8c70cd45f7d' as mercant_id, 
+  'lavka-ala' as mercant_name 
+FROM ${ref('raw_parser_lavka_almaty')}
+
+UNION ALL
+
+SELECT 
+  id, 
+  raw_data, 
+  created_at, 
+  '15081160-8440-41e0-ac78-afbe17e26d79' as mercant_id, 
+  'lavka-ast' as mercant_name 
+FROM  ${ref('raw_parser_lavka_astana')}
+
+UNION ALL
+
+SELECT 
+  id, 
+  raw_data, 
+  created_at, 
+  '24c85cdd-cff6-4e60-a32c-e2193d08f964' as mercant_id, 
+  'magnum-ala' as mercant_name 
+FROM  ${ref('raw_parser_magnum_almaty')}
+
+UNION ALL
+
+SELECT 
+  id, 
+  raw_data, 
+  created_at, 
+  '8ee8ee38-5732-411b-9e62-228303a8de6f' as mercant_id, 
+  'magnum-ast' as mercant_name 
+FROM  ${ref('raw_parser_magnum_astana')}
+
+UNION ALL
+
+SELECT 
+  id, 
+  raw_data, 
+  created_at, 
+  '70e6a58b-bf0a-4d53-b2b8-af4e0399047f' as mercant_id, 
+  'wolt-ala' as mercant_name 
+FROM  ${ref('raw_parser_wolt_market_almaty')}
+
+UNION ALL
+
+SELECT 
+  id, 
+  raw_data, 
+  created_at, 
+  'b8b18360-786e-4271-9996-34024fc3c4dd' as mercant_id, 
+  'wolt-ast' as mercant_name 
+FROM ${ref('raw_parser_wolt_market_astana')}
+
