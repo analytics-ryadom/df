@@ -105,6 +105,16 @@ select  t1.order_id,
         t1.status,
         t1.is_fraud,
         IFNULL(rfd.refund_amount, 0) as refund_amount, 
+
+        t1.promocode_id,
+        oc.order_details_json as delivered_products,
+        t1.city_id,
+        t1.city_name,
+        edt.range_from as min_promised_delivery_time,
+        edt.range_to as max_promised_delivery_time,
+        t1.promocode_name,
+        t1.promocode_conditions,
+
 from ${ref('int_lavka_courier_orders')} as t1
 left join ${ref('int_order_items')} as t2
     on t1.order_id = t2.order_id
@@ -117,6 +127,8 @@ left join ${ref('int_surge_orders_mapping')} as t5
 left join ${ref('int_refunds')} as rfd
     on t1.order_id = rfd.order_id 
 
+left join ${ref('int_orders_cart')} oc on oc.order_id = t1.order_id
+left join ${ref('stg_lavka__estimated_delivery_times')} edt on edt.preorder_id = t1.preorder_id
 where t1.created_at >= timestamp_checkpoint 
 
 

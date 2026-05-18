@@ -60,9 +60,16 @@ _orders_lavka as (
             t1.payment_id as payment_id,
             t1.status,
             t1.is_fraud,
+            t1.promocode_id,
+            p.promocode as promocode_name,
+            PARSE_JSON(p.conditions) as promocode_conditions,
+            t2.city_id,
+            lc.name as city_name,
     from ${ref('stg_lavka__orders_lavka')} as t1
     left join ${ref('stg_lavka__warehouses')} as t2
+     join ${ref('stg_lavka__cities')} lc on lc.id = t2.city_id
       on t1.warehouse_id = t2.id
+    left join ${ref('stg_promo__promocodes')} p on p.id = t1.promocode_id
     where t1.created_at >= timestamp_checkpoint 
 )
 
