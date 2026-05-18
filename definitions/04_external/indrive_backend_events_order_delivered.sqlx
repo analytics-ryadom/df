@@ -33,7 +33,7 @@ with os as (
     order_id, 
     status, 
     created_at   
-  from `organic-reef-315010.staging_dev.stg_lavka__order_status_history` 
+  from ${ref('stg_lavka__order_status_history')} 
   where created_at >= timestamp_checkpoint 
     and status in (7,8)
   order by 1,3
