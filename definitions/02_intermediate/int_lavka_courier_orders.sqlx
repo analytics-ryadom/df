@@ -65,6 +65,7 @@ _orders_lavka as (
             PARSE_JSON(p.conditions) as promocode_conditions,
             t2.city_id,
             lc.name as city_name,
+            t1.cancel_reason,
     from ${ref('stg_lavka__orders_lavka')} as t1
     left join ${ref('stg_lavka__warehouses')} as t2
      join ${ref('stg_lavka__cities')} lc on lc.id = t2.city_id
