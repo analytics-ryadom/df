@@ -105,7 +105,6 @@ select  t1.order_id,
         t1.status,
         t1.is_fraud,
         IFNULL(rfd.refund_amount, 0) as refund_amount, 
-
         t1.promocode_id,
         oc.order_details_json as delivered_products,
         t1.city_id,
@@ -114,6 +113,7 @@ select  t1.order_id,
         edt.range_to as max_promised_delivery_time,
         t1.promocode_name,
         t1.promocode_conditions,
+        t1.cancel_reason,
 
 from ${ref('int_lavka_courier_orders')} as t1
 left join ${ref('int_order_items')} as t2

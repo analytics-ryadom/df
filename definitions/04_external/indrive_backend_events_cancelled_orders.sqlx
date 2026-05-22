@@ -77,45 +77,41 @@ WITH
   res AS (
   SELECT
     os.*,
-    ol.created_at AS created_dttm,
-    ol.status,
-    ol.cancel_reason,
-    SPLIT(ol.cancel_reason,':')[0] AS main_reason,
-    SPLIT(ol.cancel_reason,':')[1] AS additional_reason,
+    mo.created_at AS created_dttm,
+    mo.status,
+    mo.cancel_reason,
+    SPLIT(mo.cancel_reason,':')[0] AS main_reason,
+    SPLIT(mo.cancel_reason,':')[1] AS additional_reason,
     'food.backend.order_cancelled' AS name,
     ul.external_user_id AS user_id,
     CASE
-      WHEN lc.name='Алматы' THEN 'Almaty'
-      WHEN lc.name='Астана' THEN 'Astana'
+      WHEN mo.city_name='Алматы' THEN 'Almaty'
+      WHEN mo.city_name='Астана' THEN 'Astana'
       ELSE 'other'END AS city_name,
     'KZ' AS country_code,
     GENERATE_UUID() AS event_id,
     'KZT' AS currency,
     TIMESTAMP(FORMAT_TIMESTAMP("%Y-%m-%dT%H:%M:%SZ", os.canceled_dttm )) AS actual_cancellation_time,
-    TIMESTAMP(FORMAT_TIMESTAMP("%Y-%m-%dT%H:%M:%SZ", ol.created_at)) AS order_creation_time,
-    edt.range_from AS min_promised_delivery_time,
-    edt.range_to AS max_promised_delivery_time,
-    oc.order_details_json as cart,
-    ol.payment_id AS payment_id,
-    p.promocode AS promocode_name,
-    PARSE_JSON(p.conditions) AS promocode_conditions
+    TIMESTAMP(FORMAT_TIMESTAMP("%Y-%m-%dT%H:%M:%SZ", mo.created_at)) AS order_creation_time,
+    mo.min_promised_delivery_time,
+    mo.max_promised_delivery_time,
+    mo.delivered_products as cart,
+    mo.payment_id AS payment_id,
+    mo.promocode_name AS promocode_name,
+    mo.promocode_conditions AS promocode_conditions
   FROM
     order_statuses os
-  JOIN ${ref('stg_lavka__orders_lavka')} ol ON ol.id =os.order_id
-  join ${ref('int_orders_cart')} oc on oc.order_id = ol.id
-  JOIN ${ref('stg_lavka__warehouses')} w ON w.id = ol.warehouse_id
-  JOIN ${ref('stg_lavka__cities')} lc ON lc.id = w.city_id
-  JOIN ${ref('stg_ryadom_identity__internal_external_user_links')} ul ON ul.internal_user_id = ol.user_id
+  JOIN ${ref('mart_orders')} mo  ON mo.order_id =os.order_id
+  JOIN ${ref('stg_ryadom_identity__internal_external_user_links')} ul ON ul.internal_user_id = mo.user_id
   JOIN ${ref('stg_ryadom_identity__external_providers')} ep ON ep.id = ul.external_provider_id
-  LEFT JOIN ${ref('stg_lavka__estimated_delivery_times')} edt ON edt.preorder_id = ol.preorder_id
-  LEFT JOIN ${ref('stg_promo__promocodes')} p ON p.id = ol.promocode_id
+
   WHERE
     ep.id=1
-    AND ol.status=8
-    AND ol.created_at > timestamp_checkpoint
-    AND ol.payment_id IS NOT NULL
+    AND mo.status=8
+    AND mo.created_at > timestamp_checkpoint
+    AND mo.payment_id IS NOT NULL
   ORDER BY
-    ol.created_at ),
+    mo.created_at ),
   
   inter AS (
   SELECT
