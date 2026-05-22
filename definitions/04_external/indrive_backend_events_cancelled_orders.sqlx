@@ -98,7 +98,16 @@ WITH
     mo.delivered_products as cart,
     mo.payment_id AS payment_id,
     mo.promocode_name AS promocode_name,
-    mo.promocode_conditions AS promocode_conditions
+    mo.promocode_conditions AS promocode_conditions,
+
+    mo.original_price as original_cart_price,
+    mo.oi_price as cart_price,
+    mo.delivery_fee_price as delivery_price,
+    mo.order_lat as delivery_latitude ,
+    mo.order_long as delivery_longitude,
+    coalesce(mo.service_fee_price, 0) as service_fee, 
+    mo.warehouse_id as store_id,
+
   FROM
     order_statuses os
   JOIN ${ref('mart_orders')} mo  ON mo.order_id =os.order_id
