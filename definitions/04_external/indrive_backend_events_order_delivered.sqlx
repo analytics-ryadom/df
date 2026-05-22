@@ -60,14 +60,12 @@ select
   mo.promocode_conditions,
   mo.original_price as original_cart_price,
   mo.oi_price as cart_price,
-
   mo.delivery_fee_price as delivery_price,
   mo.original_price as delivered_products_original_price,
   mo.oi_price as delivered_products_price,
   mo.order_lat as delivery_latitude ,
   mo.order_long as delivery_longitude,
-  coalesce(mo.service_fee_price, 0) as service_fee,
-  -- mo.warehouse_id as warehouse_id, 
+  coalesce(mo.service_fee_price, 0) as service_fee, 
   mo.warehouse_id as store_id,
 from ${ref('mart_orders')} mo 
   join ${ref('stg_ryadom_identity__internal_external_user_links')} ul on ul.internal_user_id = mo.user_id
