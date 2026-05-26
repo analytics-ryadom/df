@@ -114,7 +114,8 @@ select  t1.order_id,
         t1.promocode_name,
         t1.promocode_conditions,
         t1.cancel_reason,
-
+        t1.provider_user_id,
+        
 from ${ref('int_lavka_courier_orders')} as t1
 left join ${ref('int_order_items')} as t2
     on t1.order_id = t2.order_id

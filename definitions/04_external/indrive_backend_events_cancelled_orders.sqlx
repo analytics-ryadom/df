@@ -83,7 +83,7 @@ WITH
     SPLIT(mo.cancel_reason,':')[0] AS main_reason,
     SPLIT(mo.cancel_reason,':')[1] AS additional_reason,
     'food.backend.order_cancelled' AS name,
-    ul.external_user_id AS user_id,
+    mo.provider_user_id as user_id,
     CASE
       WHEN mo.city_name='Алматы' THEN 'Almaty'
       WHEN mo.city_name='Астана' THEN 'Astana'
@@ -111,12 +111,8 @@ WITH
   FROM
     order_statuses os
   JOIN ${ref('mart_orders')} mo  ON mo.order_id =os.order_id
-  JOIN ${ref('stg_ryadom_identity__internal_external_user_links')} ul ON ul.internal_user_id = mo.user_id
-  JOIN ${ref('stg_ryadom_identity__external_providers')} ep ON ep.id = ul.external_provider_id
-
   WHERE
-    ep.id=1
-    AND mo.status=8
+    mo.status=8
     AND mo.created_at > timestamp_checkpoint
     AND mo.payment_id IS NOT NULL
   ORDER BY
@@ -188,7 +184,15 @@ select
     order_id,
     payment_id,
     promocode_name,
-    promocode_conditions
+    promocode_conditions,
+
+    original_cart_price,
+    cart_price,
+    delivery_price,
+    delivery_latitude ,
+    delivery_longitude,
+    service_fee, 
+    store_id,
 from w_stage
 
 
