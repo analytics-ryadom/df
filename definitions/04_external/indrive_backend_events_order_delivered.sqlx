@@ -42,7 +42,7 @@ with os as (
 
 select 
   'food.backend.order_delivered' as name,
-  ul.external_user_id as user_id,
+  mo.provider_user_id as user_id,
   case when mo.city_name='Алматы' then 'Almaty'
       when mo.city_name='Астана' then 'Astana'
       else 'other'end as city_name,
@@ -68,8 +68,6 @@ select
   coalesce(mo.service_fee_price, 0) as service_fee, 
   mo.warehouse_id as store_id,
 from ${ref('mart_orders')} mo 
-  join ${ref('stg_ryadom_identity__internal_external_user_links')} ul on ul.internal_user_id = mo.user_id
-  join ${ref('stg_ryadom_identity__external_providers')} ep on ep.id = ul.external_provider_id
   left join (select 
             order_id, 
             created_at 
@@ -78,7 +76,7 @@ from ${ref('mart_orders')} mo
     on d.order_id = mo.order_id
   
 where payment_id is not null 
-  and ep.id=1
+--   and ep.id=1
   and mo.created_at >= timestamp_checkpoint
 
 
