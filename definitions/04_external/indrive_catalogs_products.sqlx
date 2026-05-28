@@ -61,3 +61,4 @@ left join ${ref('stg_lavka__brands')} as b
 left join ${ref('stg_lavka__product_images')} as i
     on p.id = i.product_id
 
+where i.sort_weight = 0
