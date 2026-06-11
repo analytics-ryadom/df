@@ -1,0 +1,81 @@
+config {
+  type: "table",
+  schema: "staging",
+  name: "stg_indrive__miniapp_events",
+  description: "Staging table for inDrive miniapp events",
+  bigquery: {
+    partitionBy: 'timestamp_trunc(created_at, day)',
+    updatePartitionFilter: 'created_at >= timestamp_sub(current_timestamp(), interval 7 day)',
+    clusterBy: ['id']
+  },
+  tags: ["staging", "indrive"],
+  assertions: {
+    uniqueKey: ["event_id"],
+    nonNull: ["event_id", "user_id", "timestamp"]
+  }
+}
+
+
+WITH exploded AS (
+  SELECT
+    id,
+    created_at,
+    event
+  
+FROM
+  ${ref("miniapp_events")},
+  UNNEST(JSON_QUERY_ARRAY(raw_data)) AS event
+  ${when(incremental(), `where created_at > (select max(created_at) from ${self()})`)}
+)
+,
+res as (
+SELECT
+  id,
+  created_at,
+
+  JSON_VALUE(event, '$.event_id') AS event_id,
+  JSON_VALUE(event, '$.name') AS event_name,
+
+  SAFE.PARSE_TIMESTAMP(
+  '%Y-%m-%dT%H:%M:%E6SZ',
+  REGEXP_REPLACE(
+    JSON_VALUE(event, '$.timestamp'),
+    r'\.(\d{6})\d+Z$',
+    r'.\1Z'
+  )
+) AS event_ts,
+  SAFE.PARSE_TIMESTAMP(
+  '%Y-%m-%dT%H:%M:%E6SZ',
+  REGEXP_REPLACE(
+    JSON_VALUE(event, '$.ingestion_ts'),
+    r'\.(\d{6})\d+Z$',
+    r'.\1Z'
+  )
+) AS ingestion_ts,
+
+  CAST(JSON_VALUE(event, '$.client_time') AS INT64) AS client_time,
+
+  JSON_VALUE(event, '$.context.app_session_id') AS app_session_id,
+  JSON_VALUE(event, '$.context.app_version') AS app_version,
+  JSON_VALUE(event, '$.context.country_code') AS country_code,
+  JSON_VALUE(event, '$.context.platform') AS platform,
+
+  JSON_VALUE(event, '$.payload.user_id') AS user_id,
+  JSON_VALUE(event, '$.payload.delivery_city') AS city,
+  CAST(JSON_VALUE(event, '$.payload.store_id') AS INT64) AS store_id,
+
+  JSON_VALUE(event, '$.payload.current_page') AS current_page,
+
+  CAST(JSON_VALUE(event, '$.payload.cart_price') AS NUMERIC) AS cart_price,
+  CAST(JSON_VALUE(event, '$.payload.delivery_price') AS NUMERIC) AS delivery_price,
+  CAST(JSON_VALUE(event, '$.payload.service_fee') AS NUMERIC) AS service_fee,
+
+  JSON_VALUE(event, '$.payload.currency') AS currency,
+
+  CAST(JSON_VALUE(event, '$.seqnum') AS INT64) AS seqnum
+
+FROM exploded)
+
+
+select *  from res
+
