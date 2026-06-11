@@ -291,3 +291,9 @@ declare({
   schema: "indrive",
   name: "superapp_events",
 });
+
+declare({
+  database: "organic-reef-315010",
+  schema: "indrive",
+  name: "miniapp_events",
+});
