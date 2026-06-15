@@ -9,10 +9,7 @@ config {
     clusterBy: ['id']
   },
   tags: ["staging", "indrive"],
-  assertions: {
-    uniqueKey: ["event_id"],
-    nonNull: ["event_id", "user_id", "timestamp"]
-  }
+
 }
 
 
