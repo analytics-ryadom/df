@@ -60,11 +60,12 @@ t1 as(
   oi.original_price,
   oi.price,
   oi.product_id as id,
+  oi.feature_id,
  
 from ord_products op
 join ${ref('stg_lavka__products')} as p on p.name = op.name
 join ${ref('stg_lavka__order_items')} as oi on oi.order_id = op.order_id and oi.product_id = p.id
-GROUP By created_at, name, order_id, product_name, original_price, price, id
+GROUP By created_at, name, order_id, product_name, original_price, price, id, feature_id
 order by op.created_at
 )
 
@@ -81,7 +82,8 @@ SELECT
                     orders.id,
                     orders.price,
                     orders.original_price,
-                    orders.quantity)) AS order_details_json
+                    orders.quantity,
+                    orders.feature_id)) AS order_details_json
     
 FROM
   t1 AS orders
