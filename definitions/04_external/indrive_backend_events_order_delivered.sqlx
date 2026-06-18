@@ -37,7 +37,27 @@ with os as (
   where created_at >= timestamp_checkpoint 
     and status in (7,8)
   order by 1,3
-  )
+  ),
+
+ dp as(
+  SELECT
+    mo.order_id,
+
+   ARRAY_AGG(STRUCT(product.id,
+                    product.name,
+                    product.quantity,
+                    product.price,
+                    product.original_price)) AS delivered_products
+
+  from ${ref('mart_orders')} mo 
+,UNNEST(mo.delivered_products) AS product
+
+where payment_id is not null 
+ and created_at >= timestamp_checkpoint 
+
+GROUP BY
+  mo.order_id
+ ) 
 
 
 select 
@@ -53,7 +73,7 @@ select
   TIMESTAMP(FORMAT_TIMESTAMP("%Y-%m-%dT%H:%M:%SZ", mo.created_at)) AS order_creation_time,
   mo.min_promised_delivery_time,
   mo.max_promised_delivery_time,
-  mo.delivered_products as delivered_products,
+  dp.delivered_products as delivered_products,
   cast(mo.order_id as string) as order_id,
   mo.payment_id as payment_id,
   mo.promocode_name,
@@ -68,6 +88,7 @@ select
 --   coalesce(mo.service_fee_price, 0) as service_fee, 
 --   mo.warehouse_id as store_id,
 from ${ref('mart_orders')} mo 
+join dp  on dp.order_id = mo.order_id
   left join (select 
             order_id, 
             created_at 

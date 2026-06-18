@@ -73,6 +73,27 @@ WITH
   ORDER BY
     order_id),
 
+ dp as(
+  SELECT
+    mo.order_id,
+
+   ARRAY_AGG(STRUCT(product.id,
+                    product.name,
+                    product.quantity,
+                    product.price,
+                    product.original_price)) AS delivered_products
+
+  from ${ref('mart_orders')} mo 
+,UNNEST(mo.delivered_products) AS product
+
+where payment_id is not null 
+    and mo.status=8
+    and created_at > timestamp_checkpoint 
+
+GROUP BY
+  mo.order_id
+ ),
+
 
   res AS (
   SELECT
@@ -95,7 +116,7 @@ WITH
     TIMESTAMP(FORMAT_TIMESTAMP("%Y-%m-%dT%H:%M:%SZ", mo.created_at)) AS order_creation_time,
     mo.min_promised_delivery_time,
     mo.max_promised_delivery_time,
-    mo.delivered_products as cart,
+    dp.delivered_products as cart,
     mo.payment_id AS payment_id,
     mo.promocode_name AS promocode_name,
     mo.promocode_conditions AS promocode_conditions,
@@ -110,7 +131,9 @@ WITH
 
   FROM
     order_statuses os
-  JOIN ${ref('mart_orders')} mo  ON mo.order_id =os.order_id
+  JOIN ${ref('mart_orders')} mo ON mo.order_id = os.order_id
+  JOIN dp on dp.order_id = mo.order_id
+
   WHERE
     mo.status=8
     AND mo.created_at > timestamp_checkpoint
