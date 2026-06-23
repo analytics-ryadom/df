@@ -51,6 +51,7 @@ select
     free_delivery,
     payment_id,
     provider_user_id,
-    ROW_NUMBER() OVER(PARTITION BY user_id ORDER BY created_at) as order_num
+    ROW_NUMBER() OVER(PARTITION BY user_id ORDER BY created_at) as order_num,
+    delivery_mode
 from
     ${ref('orders_lavka')}
