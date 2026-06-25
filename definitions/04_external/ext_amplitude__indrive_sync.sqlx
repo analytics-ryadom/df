@@ -45,7 +45,7 @@ with
     , safe_cast(external_user_id as int64) as external_user_id
   from ${ref('stg_ryadom_identity__internal_external_user_links')}
   where external_provider_id = 1
-    and internal_user_id in (15093366, 11031999, 11994448) -- test users
+    and internal_user_id in (15093366, 11031999, 11994448, 15982160, 15754449) -- test users
   qualify row_number() over (partition by internal_user_id order by created_at desc) = 1
   )
 
