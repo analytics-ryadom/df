@@ -1,6 +1,6 @@
 config {
   type: 'incremental',
-  description: 'InDrive superapp events mapped to Amplitude schema for Batch API sync',
+  description: 'InDrive superapp events mapped to Amplitude schema for Batch API sync, with user_id and session_id resolved from miniapp Amplitude events via session linking',
   schema: 'external',
   tags: ['amplitude', 'external', 'sync', 'indrive'],
   name: 'ext_amplitude__indrive_sync',
@@ -29,40 +29,50 @@ pre_operations {
 }
 
 with
-  _ids_linking as (
+  _session_links as (
   select
-      internal_user_id
-    , external_user_id
+      lower(json_value(raw, '$.context.app_session_id')) as superapp_session_id
+    , max(json_value(raw, '$.payload.ryadom_session_id')) as miniapp_amplitude_session_id
+  from ${ref('miniapp_events')}
+    , unnest(json_query_array(raw_data)) as raw
+  where created_at >= timestamp_checkpoint
+  group by superapp_session_id
+  )
+
+  , _user_ids_linking as (
+  select
+      safe_cast(internal_user_id as int64) as internal_user_id
+    , safe_cast(external_user_id as int64) as external_user_id
   from ${ref('stg_ryadom_identity__internal_external_user_links')}
   where external_provider_id = 1
+    and internal_user_id in (15093366, 11031999, 11994448, 15982160, 15754449) -- test users
   qualify row_number() over (partition by internal_user_id order by created_at desc) = 1
   )
 
   , _base as (
   select
-      s.event_time
+      timestamp_millis(cast(s.client_time as int64)) as event_time
     , s.server_upload_time
-    , unix_millis(s.event_time) as time
     , s.event_type
     , s.uuid
-    , s.app_session_id as session_id
+    , sl.miniapp_amplitude_session_id as session_id
     , s.app_version as version_name
     , s.platform
     , s.country_code as country
-    , s.external_user_id as indrive_user_id
-    , cast(il.internal_user_id as string) as user_id
+    , cast(uil.internal_user_id as string) as user_id
     , s.payload
   from ${ref('stg_indrive__superapp_events')} s
-  join _ids_linking il
-    on s.external_user_id = il.external_user_id
-  where s.event_time >= timestamp_checkpoint
-    and il.internal_user_id in (15093366) -- test users list to delete after testing
+  join _session_links sl
+    on lower(s.app_session_id) = sl.superapp_session_id
+  join _user_ids_linking uil
+    on safe_cast(s.external_user_id as int64) = uil.external_user_id
+  where s.created_at >= timestamp_checkpoint
   )
 
 select
     event_time
   , user_id
-  , time
+  , unix_millis(event_time) as time
   , event_type
   , uuid
   , session_id
