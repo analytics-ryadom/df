@@ -1,0 +1,142 @@
+config {
+  type: "incremental",
+  schema: "mart",
+  name: "fct_supplier_compensation_daily",
+  description: "Daily fact at grain dt x warehouse x product x supplier. Shipments (amount_in x supplier_price) from product_snapshot_v21, turnover from mart_orders. Supplier attributed point-in-time from c_suppliers_history. Slim fact: names/brand/category resolved via dim_suppliers / dim_products / dim_brands. All money in tenge (raw tiyn / 100).",
+  tags: ["mart", "fct", "suppliers", "compensation"],
+  uniqueKey: ["dt", "warehouse_id", "product_id"],
+  assertions: {
+    uniqueKey: ["dt", "warehouse_id", "product_id"],
+    nonNull: ["dt", "warehouse_id", "product_id"]
+  },
+  bigquery: {
+    partitionBy: "dt",
+    clusterBy: ["warehouse_id", "product_id"]
+  }
+}
+
+js {
+  // Reserve supplier "Solve Logistics ТОО" (snp.suppliers.uuid). Business constant, not a table id.
+  const RESERVE_SUPPLIER_GUID = "1c994caa-018e-11f1-96a0-a8a159899809";
+}
+
+pre_operations {
+  DECLARE date_checkpoint DATE;
+  SET date_checkpoint = (
+    ${when(incremental(),
+      `SELECT IFNULL(DATE_SUB(MAX(dt), INTERVAL 15 DAY), DATE('2026-01-01')) FROM ${self()}`,
+      `SELECT DATE('2026-01-01')`)}
+  );
+  ${when(incremental(),
+    `DELETE FROM ${self()} WHERE dt >= date_checkpoint`)}
+}
+
+WITH
+  ship AS (
+    SELECT
+        ps.product_id,
+        ps.warehouse_id,
+        DATE(ps.dt) AS dt,
+        SUM(ps.amount_in) AS shipment_qty,
+    FROM
+        ${ref('product_snapshot_v21')} AS ps
+    WHERE
+        ps.dt >= TIMESTAMP(date_checkpoint)
+        AND ps.amount_in > 0
+    GROUP BY 1, 2, 3
+  ),
+
+  sales AS (
+    SELECT
+        dp.id AS product_id,
+        o.warehouse_id,
+        DATE(o.created_at) AS dt,
+        SUM(dp.price * dp.quantity) / 100 AS turnover,
+        SUM(dp.quantity) AS qty_sold,
+    FROM
+        ${ref('mart_orders')} AS o,
+        UNNEST(o.delivered_products) AS dp
+    WHERE
+        o.created_at >= TIMESTAMP(date_checkpoint)
+        AND o.is_internal_order = FALSE
+        AND o.is_fraud = FALSE
+        AND (o.status IS NULL OR o.status <> 8)
+    GROUP BY 1, 2, 3
+  ),
+
+  base AS (
+    SELECT
+        COALESCE(s.product_id, sa.product_id) AS product_id,
+        COALESCE(s.warehouse_id, sa.warehouse_id) AS warehouse_id,
+        COALESCE(s.dt, sa.dt) AS dt,
+        s.shipment_qty,
+        sa.turnover,
+        sa.qty_sold,
+    FROM ship AS s
+    FULL JOIN sales AS sa USING (product_id, warehouse_id, dt)
+  ),
+
+  -- bridge integer ids -> uuid/guid for the supplier interval join
+  product_bridge AS (
+    SELECT product_id, uuid FROM ${ref('dim_products')}
+  ),
+  warehouse_bridge AS (
+    SELECT id AS warehouse_id, uuid AS wh_uuid FROM ${ref('dim_warehouses')}
+  ),
+
+  supplier_of_day AS (
+    SELECT
+        b.product_id,
+        b.warehouse_id,
+        b.dt,
+        h.provider_guid,
+    FROM base AS b
+    JOIN product_bridge AS pb ON pb.product_id = b.product_id
+    JOIN warehouse_bridge AS wb ON wb.warehouse_id = b.warehouse_id
+    JOIN ${ref('c_suppliers_history')} AS h
+      ON h.sku_guid = pb.uuid
+     AND h.wh_guid = wb.wh_uuid
+     AND b.dt >= DATE(h.active_from)
+     AND b.dt < DATE(h.active_to)
+    QUALIFY ROW_NUMBER() OVER (
+      PARTITION BY b.product_id, b.warehouse_id, b.dt
+      ORDER BY h.active_from DESC
+    ) = 1
+  ),
+
+  price_of_day AS (
+    SELECT
+        b.product_id,
+        b.warehouse_id,
+        b.dt,
+        ph.supplier_price,
+    FROM base AS b
+    JOIN ${ref('price_change_history')} AS ph
+      ON ph.product_id = b.product_id
+     AND ph.warehouse_id = b.warehouse_id
+     AND b.dt >= DATE(ph.active_from)
+     AND b.dt < DATE(ph.active_to)
+    QUALIFY ROW_NUMBER() OVER (
+      PARTITION BY b.product_id, b.warehouse_id, b.dt
+      ORDER BY (ph.promo_id IS NULL) DESC, ph.active_from DESC, ph.supplier_price DESC
+    ) = 1
+  )
+
+SELECT
+    b.dt,
+    b.warehouse_id,
+    b.product_id,
+    sup.provider_guid,
+    CASE
+      WHEN sup.provider_guid IS NULL THEN 'Не определён'
+      WHEN sup.provider_guid = '${RESERVE_SUPPLIER_GUID}' THEN 'Резервный'
+      ELSE 'Основной'
+    END AS supplier_group,
+    COALESCE(sup.provider_guid = '${RESERVE_SUPPLIER_GUID}', FALSE) AS is_reserve,
+    b.shipment_qty,
+    b.shipment_qty * pr.supplier_price / 100 AS shipment_value,
+    b.turnover,
+    b.qty_sold,
+FROM base AS b
+LEFT JOIN supplier_of_day AS sup USING (product_id, warehouse_id, dt)
+LEFT JOIN price_of_day AS pr USING (product_id, warehouse_id, dt)

@@ -1,0 +1,20 @@
+config {
+  type: "table",
+  schema: "mart",
+  name: "fct_supplier_compensation_1c",
+  description: "PLACEHOLDER for the 1C compensation export (grain: supplier x service_type x month). Empty typed table until the 1C upload pipeline is built. Reserve supplier ('Solve Logistics ТОО') has no compensation. % compensation is computed in Power BI as compensation_amount / shipment_value (from fct_supplier_compensation_daily).",
+  tags: ["mart", "fct", "compensation", "1c", "placeholder"],
+  assertions: {
+    nonNull: ["provider_guid"]
+  }
+}
+
+-- TODO: replace this empty placeholder with the real 1C upload (declare as source in 04_external)
+-- once the export format (by supplier and service type) is finalized.
+SELECT
+    CAST(NULL AS STRING) AS provider_guid,
+    CAST(NULL AS STRING) AS provider_name,
+    CAST(NULL AS DATE) AS period_month,
+    CAST(NULL AS STRING) AS service_type,
+    CAST(NULL AS FLOAT64) AS compensation_amount,
+WHERE FALSE
