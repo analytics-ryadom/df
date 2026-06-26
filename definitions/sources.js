@@ -297,3 +297,27 @@ declare({
   schema: "indrive",
   name: "miniapp_events",
 });
+
+declare({
+  database: "organic-reef-315010",
+  schema: "analytics",
+  name: "product_snapshot_v21",
+});
+
+declare({
+  database: "organic-reef-315010",
+  schema: "dds",
+  name: "c_suppliers_history",
+});
+
+declare({
+  database: "organic-reef-315010",
+  schema: "dds",
+  name: "price_change_history",
+});
+
+declare({
+  database: "organic-reef-315010",
+  schema: "snp",
+  name: "suppliers",
+});
