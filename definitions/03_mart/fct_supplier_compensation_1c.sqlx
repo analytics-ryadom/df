@@ -17,4 +17,4 @@ SELECT
     CAST(NULL AS DATE) AS period_month,
     CAST(NULL AS STRING) AS service_type,
     CAST(NULL AS FLOAT64) AS compensation_amount,
-WHERE FALSE
+LIMIT 0
