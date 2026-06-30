@@ -1,0 +1,23 @@
+config {
+  type: "table",
+  schema: "mart",
+  name: "dim_suppliers",
+  description: "Suppliers catalog. provider_guid = snp.suppliers.uuid = dds.c_suppliers_history.provider_guid",
+  tags: ["dim", "suppliers"],
+  uniqueKey: ["provider_guid"],
+  assertions: {
+    uniqueKey: ["provider_guid"],
+    nonNull: ["provider_guid"]
+  }
+}
+
+SELECT
+    s.uuid AS provider_guid,
+    s.name AS provider_name,
+    s.id AS supplier_id,
+FROM
+    ${ref('suppliers')} AS s
+QUALIFY ROW_NUMBER() OVER (
+  PARTITION BY s.uuid
+  ORDER BY s.updated_at DESC, s.created_at DESC
+) = 1

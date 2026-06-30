@@ -1,0 +1,23 @@
+config {
+  type: "table",
+  schema: "mart",
+  name: "dim_brands",
+  description: "Brand catalog (brand_id -> brand_name). Joins to dim_products.brand_id",
+  tags: ["dim", "brands"],
+  uniqueKey: ["brand_id"],
+  assertions: {
+    uniqueKey: ["brand_id"],
+    nonNull: ["brand_id"]
+  }
+}
+
+SELECT
+    b.id AS brand_id,
+    b.name AS brand_name,
+    b.is_active,
+FROM
+    ${ref('brands')} AS b
+QUALIFY ROW_NUMBER() OVER (
+  PARTITION BY b.id
+  ORDER BY b.updated_at DESC
+) = 1
