@@ -49,19 +49,37 @@ with
   qualify row_number() over (partition by internal_user_id order by created_at desc) = 1
   )
 
+  , _pre_base as (
+  select
+      json_extract_scalar(s.payload, '$.user_id') as external_user_id
+    , s.app_session_id
+    , s.created_at
+    , timestamp_millis(cast(s.client_time as int64)) as event_time
+    , s.server_upload_time
+    , s.event_type
+    , s.uuid
+    , s.app_version as version_name
+    , s.platform
+    , s.country_code as country
+    , s.payload
+  from ${ref('stg_indrive__superapp_events')} s
+  where s.created_at >= timestamp_checkpoint
+  )
+
   , _base as (
   select
-      timestamp_millis(cast(s.client_time as int64)) as event_time
+      event_time
     , s.server_upload_time
     , s.event_type
     , s.uuid
     , sl.miniapp_amplitude_session_id as session_id
-    , s.app_version as version_name
+    , s.version_name
     , s.platform
-    , s.country_code as country
+    , s.country
     , cast(uil.internal_user_id as string) as user_id
     , s.payload
-  from ${ref('stg_indrive__superapp_events')} s
+  -- from ${ref('stg_indrive__superapp_events')} s
+  from _pre_base s
   join _session_links sl
     on lower(s.app_session_id) = sl.superapp_session_id
   join _user_ids_linking uil

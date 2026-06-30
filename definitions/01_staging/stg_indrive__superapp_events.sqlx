@@ -20,7 +20,7 @@ select
   , json_value(event_data.context, '$.country_code') as country_code
   , json_value(event_data.context, '$.platform') as platform
   , json_value(event_data, '$.seqnum') as seqnum
-  , json_extract_scalar(event_data.payload, '$.user_id') as external_user_id
+--   , json_extract_scalar(event_data.payload, '$.user_id') as external_user_id
   , event_data.payload as payload
   , created_at
 from ${ref('superapp_events')}
